@@ -17,15 +17,17 @@ const meta = {
     component: FlatVirtualizedList<SimpleItemComponent, undefined>,
     args: {
         items,
-        getItemComponent: (
+        "getItemComponent": (
             _index: number,
             item: SimpleItemComponent,
             context: VirtualizedListContext<undefined>,
             onFocus: (item: SimpleItemComponent, e: React.FocusEvent) => void,
         ) => <SimpleItemComponent key={item.id} item={item} context={context} onFocus={onFocus} />,
-        isItemFocusable: () => true,
-        getItemKey: (item) => item.id,
-        style: { height: "400px" },
+        "isItemFocusable": () => true,
+        "getItemKey": (item) => item.id,
+        "style": { height: "400px" },
+        "role": "listbox",
+        "aria-label": "Flat virtualized list",
     },
 } satisfies Meta<FlatVirtualizedListProps<SimpleItemComponent, undefined>>;
 

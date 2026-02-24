@@ -17,7 +17,7 @@ const meta = {
     component: GroupedVirtualizedList<SimpleGroupHeader, SimpleItemComponent, undefined>,
     args: {
         groups,
-        getItemComponent: (
+        "getItemComponent": (
             index: number,
             item: SimpleItemComponent,
             context: VirtualizedListContext<undefined>,
