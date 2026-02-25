@@ -14,6 +14,8 @@ import { useViewModel } from "../../viewmodel";
 import { _t } from "../../utils/i18n";
 import { FlatVirtualizedList, type VirtualizedListContext } from "../../utils/VirtualizedList";
 import type { RoomListViewModel } from "../RoomListView";
+import { GroupedVirtualizedList } from "../../utils/VirtualizedList";
+import { RoomListSectionHeaderView } from "../RoomListSectionHeaderView";
 
 /**
  * Filter key type - opaque string type for filter identifiers
@@ -83,11 +85,22 @@ const EXTENDED_VIEWPORT_HEIGHT = 25 * ROOM_LIST_ITEM_HEIGHT;
  */
 export function VirtualizedRoomListView({ vm, renderAvatar, onKeyDown }: VirtualizedRoomListViewProps): JSX.Element {
     const snapshot = useViewModel(vm);
-    const { roomListState, roomIds } = snapshot;
+    const { roomListState, sections, isFlatList } = snapshot;
     const activeRoomIndex = roomListState.activeRoomIndex;
     const lastSpaceId = useRef<string | undefined>(undefined);
     const lastFilterKeys = useRef<FilterKey[] | undefined>(undefined);
+    const roomIds = useMemo(() => sections.flatMap((section) => section.roomIds), [sections]);
     const roomCount = roomIds.length;
+    const sectionCount = sections.length;
+
+    const groups = useMemo(
+        () =>
+            sections.map((section) => ({
+                header: section.id,
+                items: section.roomIds,
+            })),
+        [sections],
+    );
 
     /**
      * Callback when the visible range changes
@@ -135,11 +148,44 @@ export function VirtualizedRoomListView({ vm, renderAvatar, onKeyDown }: Virtual
     );
 
     /**
+     * Get the group header component for a specific group
+     */
+    const getGroupHeaderComponent = useCallback(
+        (
+            groupIndex: number,
+            headerId: string,
+            context: VirtualizedListContext<Context>,
+            onFocus: (header: string, e: React.FocusEvent) => void,
+        ): JSX.Element => {
+            const sectionHeaderVM = vm.getSectionViewModel(headerId);
+
+            // Item is focused when the list has focus AND this item's key matches tabIndexKey
+            // This matches the old RoomList implementation's roving tabindex pattern
+            const isFocused = context.focused && context.tabIndexKey === headerId;
+
+            return (
+                <RoomListSectionHeaderView
+                    vm={sectionHeaderVM}
+                    isFocused={isFocused}
+                    onFocus={onFocus}
+                    sectionIndex={groupIndex}
+                    sectionCount={sectionCount}
+                />
+            );
+        },
+        [vm, sectionCount],
+    );
+
+    /**
      * Get the key for a room item
      * Since we're using virtualization, items are always room ID strings
      */
     const getItemKey = useCallback((item: string): string => {
         return item;
+    }, []);
+
+    const getHeaderKey = useCallback((header: string): string => {
+        return header;
     }, []);
 
     const context = useMemo(
@@ -173,26 +219,43 @@ export function VirtualizedRoomListView({ vm, renderAvatar, onKeyDown }: Virtual
         [activeRoomIndex],
     );
 
+    const isItemFocusable = useCallback(() => true, []);
+    const increaseViewportBy = useMemo(
+        () => ({
+            top: EXTENDED_VIEWPORT_HEIGHT,
+            bottom: EXTENDED_VIEWPORT_HEIGHT,
+        }),
+        [],
+    );
+
+    const commonProps = {
+        context,
+        scrollIntoViewOnChange,
+        // If fixedItemHeight is not set and initialTopMostItemIndex=undefined, virtuoso crashes
+        // If we don't set it, it works
+        ...(activeRoomIndex !== undefined ? { initialTopMostItemIndex: activeRoomIndex } : {}),
+        ["data-testid"]: "room-list",
+        role: "listbox",
+        ["aria-label"]: _t("room_list|list_title"),
+        getItemComponent,
+        getItemKey,
+        isItemFocusable,
+        isGroupHeaderFocusable: isItemFocusable,
+        rangeChanged,
+        onKeyDown,
+        increaseViewportBy,
+    };
+
+    if (isFlatList) {
+        return <FlatVirtualizedList {...commonProps} items={roomIds} />;
+    }
+
     return (
-        <FlatVirtualizedList
-            context={context}
-            scrollIntoViewOnChange={scrollIntoViewOnChange}
-            // If fixedItemHeight is not set and initialTopMostItemIndex=undefined, virtuoso crashes
-            // Id we don't set it, it works
-            {...(activeRoomIndex !== undefined ? { initialTopMostItemIndex: activeRoomIndex } : {})}
-            data-testid="room-list"
-            role="listbox"
-            aria-label={_t("room_list|list_title")}
-            items={roomIds}
-            getItemComponent={getItemComponent}
-            getItemKey={getItemKey}
-            isItemFocusable={() => true}
-            rangeChanged={rangeChanged}
-            onKeyDown={onKeyDown}
-            increaseViewportBy={{
-                bottom: EXTENDED_VIEWPORT_HEIGHT,
-                top: EXTENDED_VIEWPORT_HEIGHT,
-            }}
+        <GroupedVirtualizedList<string, string, Context>
+            {...commonProps}
+            groups={groups}
+            getHeaderKey={getHeaderKey}
+            getGroupHeaderComponent={getGroupHeaderComponent}
         />
     );
 }

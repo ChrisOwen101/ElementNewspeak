@@ -13,6 +13,14 @@ import { RoomListLoadingSkeleton } from "./RoomListLoadingSkeleton";
 import { RoomListEmptyStateView } from "./RoomListEmptyStateView";
 import { VirtualizedRoomListView, type RoomListViewState } from "../VirtualizedRoomListView";
 import { type Room, type RoomItemViewModel } from "../RoomListItemView";
+import { type RoomListSectionHeaderViewModel } from "../RoomListSectionHeaderView";
+
+export type RoomListSection = {
+    /** Unique identifier for the section */
+    id: string;
+    /** Array of room IDs that belong to this section */
+    roomIds: string[];
+};
 
 /**
  * Snapshot for the room list view
@@ -29,13 +37,17 @@ export type RoomListSnapshot = {
     /** Room list state */
     roomListState: RoomListViewState;
     /** Array of room IDs for virtualization */
-    roomIds: string[];
+    // roomIds: string[];
     /** Optional description for the empty state */
     emptyStateDescription?: string;
     /** Optional action element for the empty state */
     emptyStateAction?: ReactNode;
     /** Whether the user can create rooms */
     canCreateRoom?: boolean;
+    /** Whether the room list is displayed as a flat list */
+    isFlatList: boolean;
+    /** Array of sections in the room list */
+    sections: RoomListSection[];
 };
 
 /**
@@ -52,6 +64,8 @@ export interface RoomListViewActions {
     getRoomItemViewModel: (roomId: string) => RoomItemViewModel;
     /** Called when the visible range changes (virtualization API) */
     updateVisibleRooms: (startIndex: number, endIndex: number) => void;
+    /** Get view model for a specific section header (virtualization API) */
+    getSectionViewModel: (sectionId: string) => RoomListSectionHeaderViewModel;
 }
 
 /**
