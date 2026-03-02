@@ -40,7 +40,7 @@ exports[`UrlPreviewGroupView > renders a single preview 1`] = `
               </a>
             </p>
             <p
-              class="_typography_6v6n8_153 _font-body-md-regular_6v6n8_50 description"
+              class="_typography_6v6n8_153 _font-body-md-regular_6v6n8_50 container description"
             >
               A simple description
             </p>
@@ -117,7 +117,7 @@ exports[`UrlPreviewGroupView > renders multiple previews 1`] = `
               </a>
             </p>
             <p
-              class="_typography_6v6n8_153 _font-body-md-regular_6v6n8_50 description"
+              class="_typography_6v6n8_153 _font-body-md-regular_6v6n8_50 container description"
             >
               Great description
             </p>
@@ -156,7 +156,7 @@ exports[`UrlPreviewGroupView > renders multiple previews 1`] = `
               </a>
             </p>
             <p
-              class="_typography_6v6n8_153 _font-body-md-regular_6v6n8_50 description"
+              class="_typography_6v6n8_153 _font-body-md-regular_6v6n8_50 container description"
             >
               Another description
             </p>
@@ -195,7 +195,7 @@ exports[`UrlPreviewGroupView > renders multiple previews 1`] = `
               </a>
             </p>
             <p
-              class="_typography_6v6n8_153 _font-body-md-regular_6v6n8_50 description"
+              class="_typography_6v6n8_153 _font-body-md-regular_6v6n8_50 container description"
             >
               One more description
             </p>
@@ -281,7 +281,7 @@ exports[`UrlPreviewGroupView > renders multiple previews which are hidden 1`] = 
               </a>
             </p>
             <p
-              class="_typography_6v6n8_153 _font-body-md-regular_6v6n8_50 description"
+              class="_typography_6v6n8_153 _font-body-md-regular_6v6n8_50 container description"
             >
               A simple description
             </p>
