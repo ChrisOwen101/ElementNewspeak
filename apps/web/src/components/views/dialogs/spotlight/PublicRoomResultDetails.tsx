@@ -9,9 +9,9 @@ Please see LICENSE files in the repository root for full details.
 import React, { type JSX } from "react";
 import { type IPublicRoomsChunkRoom } from "matrix-js-sdk/src/matrix";
 
-import { linkifyAndSanitizeHtml } from "../../../../HtmlUtils";
 import { _t } from "../../../../languageHandler";
 import { getDisplayAliasForAliasSet } from "../../../../Rooms";
+import { linkifyAndSanitizeHtml } from "../../../../Linkify";
 
 const MAX_NAME_LENGTH = 80;
 const MAX_TOPIC_LENGTH = 800;
