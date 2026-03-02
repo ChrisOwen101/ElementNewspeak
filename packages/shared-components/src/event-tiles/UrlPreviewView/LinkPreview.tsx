@@ -12,6 +12,7 @@ import classNames from "classnames";
 import { useI18n } from "../../utils/i18nContext";
 import styles from "./LinkPreview.module.css";
 import type { UrlPreviewViewSnapshotPreview } from "./types";
+import { LinkedText } from "../../utils/LinkedText";
 
 export interface LinkPreviewActions {
     onImageClick: () => void;
@@ -82,7 +83,9 @@ export function LinkPreview({ onImageClick, compactLayout, ...preview }: LinkPre
                             </Text>
                         )}
                     </Text>
-                    {preview.description && <Text className={styles.description}>{preview.description}</Text>}
+                    {preview.description && (
+                        <LinkedText className={styles.description}>{preview.description}</LinkedText>
+                    )}
                 </div>
             </div>
         </div>

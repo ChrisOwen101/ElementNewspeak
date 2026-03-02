@@ -44,7 +44,7 @@ Title.args = {
 export const TitleAndDescription = Template.bind({});
 TitleAndDescription.args = {
     title: "A simple title",
-    description: "A simple description",
+    description: "A simple description with a link to https://matrix.org",
     link: "https://matrix.org",
 };
 
