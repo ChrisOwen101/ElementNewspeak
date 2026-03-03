@@ -14,21 +14,18 @@ import styles from "./LinkPreview.module.css";
 import type { UrlPreviewViewSnapshotPreview } from "./types";
 import { LinkedText } from "../../utils/LinkedText";
 
-export interface LinkPreviewActions {
+export type LinkPreviewProps = UrlPreviewViewSnapshotPreview & {
+    /**
+     * Called when the thumbnail is clicked.
+     */
     onImageClick: () => void;
-}
-
-export interface LinkPreviewAdditionalProps {
-    compactLayout?: boolean;
-}
-
-export type LinkPreviewProps = UrlPreviewViewSnapshotPreview & LinkPreviewActions & LinkPreviewAdditionalProps;
+};
 
 /**
  * LinkPreview renders a single preview component for a single link on an event. It is usually rendered as part of
  * a `UrlPreviewGroupView`.
  */
-export function LinkPreview({ onImageClick, compactLayout, ...preview }: LinkPreviewProps): JSX.Element {
+export function LinkPreview({ onImageClick, ...preview }: LinkPreviewProps): JSX.Element {
     const { translate: _t } = useI18n();
 
     const tooltipCaption = useMemo(() => {

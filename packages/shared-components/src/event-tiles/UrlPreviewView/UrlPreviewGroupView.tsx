@@ -7,6 +7,7 @@
 
 import React, { type JSX } from "react";
 import { Button, IconButton } from "@vector-im/compound-web";
+import classNames from "classnames";
 import CloseIcon from "@vector-im/compound-design-tokens/assets/web/icons/close";
 
 import { useViewModel, type ViewModel } from "../../viewmodel";
@@ -23,14 +24,14 @@ export interface UrlPreviewGroupViewSnapshot {
     compactLayout: boolean;
 }
 
-export interface UrlPreviewGroupViewProps {
-    vm: ViewModel<UrlPreviewGroupViewSnapshot> & UrlPreviewGroupViewActions;
-}
-
 export interface UrlPreviewGroupViewActions {
     onTogglePreviewLimit: () => void;
     onHideClick: () => Promise<void>;
     onImageClick: (preview: UrlPreviewViewSnapshotPreview) => void;
+}
+
+export interface UrlPreviewGroupViewProps {
+    vm: ViewModel<UrlPreviewGroupViewSnapshot, UrlPreviewGroupViewActions>;
 }
 
 /**
@@ -56,14 +57,9 @@ export function UrlPreviewGroupView({ vm }: UrlPreviewGroupViewProps): JSX.Eleme
 
     return (
         <div className={styles.wrapper}>
-            <div className={styles.previewGroup}>
+            <div className={classNames(styles.previewGroup, compactLayout && styles.compactLayout)}>
                 {previews.map((preview, i) => (
-                    <LinkPreview
-                        key={preview.link}
-                        compactLayout={compactLayout}
-                        onImageClick={() => vm.onImageClick(preview)}
-                        {...preview}
-                    />
+                    <LinkPreview key={preview.link} onImageClick={() => vm.onImageClick(preview)} {...preview} />
                 ))}
                 {toggleButton}
             </div>
