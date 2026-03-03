@@ -33,9 +33,9 @@ import { getParentEventId } from "../../../utils/Reply";
 import { EditWysiwygComposer } from "../rooms/wysiwyg_composer";
 import { type IEventTileOps } from "../rooms/EventTile";
 import { UrlPreviewViewModel } from "../../../viewmodels/message-body/UrlPreviewViewModel";
-import { MatrixClientPeg } from "../../../MatrixClientPeg.ts";
 import { useMediaVisible } from "../../../hooks/useMediaVisible.ts";
 import ImageView from "../elements/ImageView.tsx";
+import { useMatrixClientContext } from "../../../contexts/MatrixClientContext.tsx";
 
 class InnerTextualBody extends React.Component<IBodyProps & { urlPreviewViewModel: UrlPreviewViewModel }> {
     private readonly contentRef = createRef<HTMLDivElement>();
@@ -314,6 +314,7 @@ class InnerTextualBody extends React.Component<IBodyProps & { urlPreviewViewMode
 
 export default function TextualBody(props: IBodyProps): React.ReactElement {
     const [mediaVisible] = useMediaVisible(props.mxEvent);
+    const client = useMatrixClientContext();
 
     const onUrlPreviewImageClicked = useCallback((preview: UrlPreviewViewSnapshotPreview): void => {
         if (!preview.image?.imageFull) {
@@ -334,7 +335,7 @@ export default function TextualBody(props: IBodyProps): React.ReactElement {
     const vm = useCreateAutoDisposedViewModel(
         () =>
             new UrlPreviewViewModel({
-                client: MatrixClientPeg.safeGet(),
+                client: client,
                 mxEvent: props.mxEvent,
                 mediaVisible: mediaVisible,
                 onImageClicked: onUrlPreviewImageClicked,
