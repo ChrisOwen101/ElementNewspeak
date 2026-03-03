@@ -11,7 +11,7 @@
     flex-direction: column;
     gap: var(--cpd-space-4x);
 
-    &.compactLayout & {
+    &.compactLayout {
         gap: var(--cpd-space-2x);
     }
 
