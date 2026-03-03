@@ -30,6 +30,7 @@ import { ElementWebExtrasApi } from "./ExtrasApi.ts";
 import { ElementWebBuiltinsApi } from "./BuiltinsApi.tsx";
 import { ClientApi } from "./ClientApi.ts";
 import { StoresApi } from "./StoresApi.ts";
+import { CustomisationsApi } from "./customisationsApi.ts";
 
 const legacyCustomisationsFactory = <T extends object>(baseCustomisations: T) => {
     let used = false;
@@ -83,6 +84,7 @@ export class ModuleApi implements Api {
     public readonly config = new ConfigApi();
     public readonly i18n = new I18nApi();
     public readonly customComponents = new CustomComponentsApi();
+    public readonly customisations = new CustomisationsApi();
     public readonly extras = new ElementWebExtrasApi();
     public readonly builtins = new ElementWebBuiltinsApi();
     public readonly rootNode = document.getElementById("matrixchat")!;
