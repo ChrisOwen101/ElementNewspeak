@@ -56,7 +56,8 @@
     },
     "pnpm": {
         "onlyBuiltDependencies": [
-            "matrix-js-sdk"
+            "matrix-js-sdk",
+            "@element-hq/element-web-module-api"
         ],
         "ignoredBuiltDependencies": [
             "@sentry/cli",

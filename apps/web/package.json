@@ -38,7 +38,7 @@
     },
     "dependencies": {
         "@babel/runtime": "^7.12.5",
-        "@element-hq/element-web-module-api": "catalog:",
+        "@element-hq/element-web-module-api": "github:element-hq/element-modules#t3chguy/wat/382&path:/packages/element-web-module-api",
         "@element-hq/web-shared-components": "workspace:*",
         "@fontsource/fira-code": "^5",
         "@fontsource/inter": "catalog:",
