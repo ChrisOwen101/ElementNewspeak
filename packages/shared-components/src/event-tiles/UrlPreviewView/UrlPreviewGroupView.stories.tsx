@@ -114,3 +114,9 @@ MultiplePreviewsVisible.args = {
     previewsLimited: false,
     totalPreviewCount: 10,
 };
+
+export const WithCompactView = Template.bind({});
+WithCompactView.args = {
+    ...MultiplePreviewsVisible.args,
+    compactLayout: true,
+};

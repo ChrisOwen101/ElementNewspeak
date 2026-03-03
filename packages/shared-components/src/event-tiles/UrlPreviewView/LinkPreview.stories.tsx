@@ -56,19 +56,6 @@ WithTooltip.args = {
     link: "https://matrix.org",
 };
 
-export const WithCompactLayout = Template.bind({});
-WithCompactLayout.args = {
-    compactLayout: true,
-    title: "A simple title",
-    description: "A simple description",
-    link: "https://matrix.org",
-    siteName: "Site name",
-    image: {
-        imageThumb: imageFile,
-        imageFull: imageFile,
-    },
-};
-
 export const WithVeryLongText = Template.bind({});
 WithVeryLongText.args = {
     title: "GitHub - element-hq/not-a-real-repo: A very very long PR title that should be rendered nicely",

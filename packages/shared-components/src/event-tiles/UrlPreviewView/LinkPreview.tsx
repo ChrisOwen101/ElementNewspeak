@@ -68,7 +68,7 @@ export function LinkPreview({ onImageClick, ...preview }: LinkPreviewProps): JSX
         </a>
     );
     return (
-        <div className={classNames(styles.container, compactLayout && "compactLayout")}>
+        <div className={classNames(styles.container)}>
             <div className={styles.wrapImageCaption}>
                 {img}
                 <div className={styles.caption}>
