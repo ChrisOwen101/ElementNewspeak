@@ -24,6 +24,11 @@ catalog:
     matrix-web-i18n: 3.6.0
     # fonts
     "@fontsource/inter": 5.2.8
+    # linkify
+    linkify-html: "4.3.2"
+    linkify-react: "4.3.2"
+    linkify-string: "4.3.2"
+    linkifyjs: "4.3.2"
 packageExtensions:
     fdir:
         dependencies:

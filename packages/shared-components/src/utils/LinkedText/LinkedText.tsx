@@ -5,6 +5,7 @@
  * Please see LICENSE files in the repository root for full details.
  */
 
+import "./linkifyOptions"; // Ensure custom protocols are loaded.
 import { Link, Text } from "@vector-im/compound-web";
 import React, { useMemo, type ComponentProps } from "react";
 import classNames from "classnames";
