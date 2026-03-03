@@ -7,9 +7,17 @@
 
 import { registerCustomProtocol } from "linkifyjs";
 
-// Linkify supports some common protocols but not others, register all permitted url schemes if unsupported
-// https://github.com/nfrasser/linkifyjs/blob/main/packages/linkifyjs/src/scanner.mjs#L171-L177
-// This also handles registering the `matrix:` protocol scheme
+/**
+ * This file describes common linkify configuration settings such as supported protocols.
+ * The instance of "linkifyjs" that exists within shared-components is distinct from the ones
+ * that may be used by parent applications such as Web, and so no cross-contamination of protocols or
+ * plugins should occur.
+ */
+
+/**
+ * List of supported protocols natively by linkify. Kept in sync with upstreanm.
+ * @see https://github.com/nfrasser/linkifyjs/blob/main/packages/linkifyjs/src/scanner.mjs#L171-L177
+ */
 export const LinkifySupportedProtocols = ["file", "mailto", "http", "https", "ftp", "ftps"];
 
 /**
@@ -63,11 +71,14 @@ export const PERMITTED_URL_SCHEMES = [
     "xmpp",
 ];
 
-// Unfortunately linkify must be configured in the global scope.
+// Linkify supports some common protocols but not others, register all permitted url schemes if unsupported
+// https://github.com/nfrasser/linkifyjs/blob/main/packages/linkifyjs/src/scanner.mjs#L171-L177
+// This also handles registering the `matrix:` protocol scheme
 PERMITTED_URL_SCHEMES.forEach((scheme) => {
     if (!LinkifySupportedProtocols.includes(scheme)) {
         registerCustomProtocol(scheme, LinkifyOptionalSlashProtocols.includes(scheme));
     }
 });
 
+// MXC urls can be resolved, but are not permitted in other parts of the app.
 registerCustomProtocol("mxc", false);
