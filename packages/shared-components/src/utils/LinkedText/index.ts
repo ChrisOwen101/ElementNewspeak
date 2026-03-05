@@ -5,5 +5,4 @@
  * Please see LICENSE files in the repository root for full details.
  */
 
-export * from "./linkifyOptions";
 export { LinkedText } from "./LinkedText";
