@@ -14,11 +14,14 @@ COPY --exclude=docker . /src
 RUN corepack enable
 # Required for pnpm to operate non-interactively (no TTY in Docker build context)
 ENV CI=true
+# Install all workspace dependencies. matrix-js-sdk is pulled from the GitHub
+# tarball specified in package.json; its prepare script builds it automatically
+# (allowed via onlyBuiltDependencies in the root package.json).
+# No docker-link-repos.sh needed — that's the old yarn approach.
 RUN pnpm install
-
-# Build element-web directly, bypassing docker-link-repos.sh / docker-package.sh
-# which assume matrix-js-sdk is a git checkout inside node_modules.
-# The registry version from pnpm-lock.yaml is used instead.
+# Build directly with a static version string.
+# We skip docker-package.sh / get-version-from-git.sh because they assume
+# matrix-js-sdk is a git checkout inside node_modules.
 ARG VERSION=docker
 RUN VERSION=$VERSION pnpm --dir apps/web build
 
