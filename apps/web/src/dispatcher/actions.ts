@@ -403,4 +403,9 @@ export enum Action {
      * or keyboard event).
      */
     UserActivity = "user_activity",
+
+    /**
+     * Submit a natural-language prompt in a dynamic `app-` room to trigger LLM-based renderer generation.
+     */
+    SubmitDynamicRoomPrompt = "submit_dynamic_room_prompt",
 }

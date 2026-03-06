@@ -12,9 +12,15 @@ WORKDIR /src
 
 COPY --exclude=docker . /src
 RUN corepack enable
-RUN /src/scripts/docker-link-repos.sh
+# Required for pnpm to operate non-interactively (no TTY in Docker build context)
+ENV CI=true
 RUN pnpm install
-RUN /src/scripts/docker-package.sh
+
+# Build element-web directly, bypassing docker-link-repos.sh / docker-package.sh
+# which assume matrix-js-sdk is a git checkout inside node_modules.
+# The registry version from pnpm-lock.yaml is used instead.
+ARG VERSION=docker
+RUN VERSION=$VERSION pnpm --dir apps/web build
 
 # Copy the config now so that we don't create another layer in the app image
 RUN cp /src/apps/web/config.sample.json /src/apps/web/webapp/config.json

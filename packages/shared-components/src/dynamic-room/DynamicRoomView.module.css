@@ -1,0 +1,73 @@
+/*
+Copyright 2026 New Vector Ltd.
+
+SPDX-License-Identifier: AGPL-3.0-only OR GPL-3.0-only OR LicenseRef-Element-Commercial
+Please see LICENSE files in the repository root for full details.
+*/
+
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+    gap: var(--cpd-space-4x);
+    padding: var(--cpd-space-8x);
+    box-sizing: border-box;
+}
+
+.promptForm {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--cpd-space-3x);
+    width: 100%;
+    max-width: 480px;
+}
+
+.promptInput {
+    width: 100%;
+    padding: var(--cpd-space-2x) var(--cpd-space-3x);
+    font: var(--cpd-font-body-md-regular);
+    color: var(--cpd-color-text-primary);
+    background: var(--cpd-color-bg-canvas-default);
+    border: 1px solid var(--cpd-color-border-interactive-secondary);
+    border-radius: var(--cpd-space-2x);
+    outline: none;
+    box-sizing: border-box;
+}
+
+.promptInput:focus {
+    border-color: var(--cpd-color-border-interactive-primary);
+}
+
+.promptInput::placeholder {
+    color: var(--cpd-color-text-placeholder);
+}
+
+.spinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--cpd-space-3x);
+}
+
+.iframeContainer {
+    width: 100%;
+    height: 100%;
+}
+
+.iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+.error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--cpd-space-3x);
+    color: var(--cpd-color-text-critical-primary);
+}

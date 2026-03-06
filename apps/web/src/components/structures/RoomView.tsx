@@ -128,6 +128,9 @@ import WidgetUtils from "../../utils/WidgetUtils";
 import { shouldEncryptRoomWithSingle3rdPartyInvite } from "../../utils/room/shouldEncryptRoomWithSingle3rdPartyInvite";
 import { WaitingForThirdPartyRoomView } from "./WaitingForThirdPartyRoomView";
 import { isNotUndefined } from "../../Typeguards";
+import { DYNAMIC_ROOM_PREFIX } from "../../dynamic-rooms/constants";
+import { DynamicRoomView } from "@element-hq/web-shared-components";
+import { DynamicRoomViewModel } from "../../viewmodels/dynamic-room/DynamicRoomViewModel";
 import { type CancelAskToJoinPayload } from "../../dispatcher/payloads/CancelAskToJoinPayload";
 import { type SubmitAskToJoinPayload } from "../../dispatcher/payloads/SubmitAskToJoinPayload";
 import RightPanelStore from "../../stores/right-panel/RightPanelStore";
@@ -418,6 +421,16 @@ function EncryptionEventWrappedView({ mxEvent }: { mxEvent: MatrixEvent }): Reac
     const vm = useCreateAutoDisposedViewModel(() => new EncryptionEventViewModel({ mxEvent, cli }));
 
     return <EncryptionEventView vm={vm} className="mx_EventTileBubble mx_cryptoEvent" />;
+}
+
+/**
+ * Wrap a DynamicRoomView and ViewModel into one component for usage within the
+ * class-based RoomView.  Uses useCreateAutoDisposedViewModel so the VM is
+ * properly disposed when the room changes or the component unmounts.
+ */
+function DynamicRoomViewWrapper({ room, client }: { room: Room; client: MatrixClient }): ReactElement {
+    const vm = useCreateAutoDisposedViewModel(() => new DynamicRoomViewModel({ room, client }));
+    return <DynamicRoomView vm={vm} />;
 }
 
 export class RoomView extends React.Component<IRoomProps, IRoomState> {
@@ -2386,6 +2399,17 @@ export class RoomView extends React.Component<IRoomProps, IRoomState> {
                             onCancelAskToJoin={this.onCancelAskToJoin}
                             onForgetClick={this.onForgetClick}
                         />
+                    </ErrorBoundary>
+                </div>
+            );
+        }
+
+        // Custom view for rooms whose name starts with "app-"
+        if (this.state.room.name.startsWith(DYNAMIC_ROOM_PREFIX)) {
+            return (
+                <div className="mx_RoomView">
+                    <ErrorBoundary>
+                        <DynamicRoomViewWrapper room={this.state.room} client={this.context.client} />
                     </ErrorBoundary>
                 </div>
             );

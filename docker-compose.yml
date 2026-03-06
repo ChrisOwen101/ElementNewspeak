@@ -1,0 +1,62 @@
+services:
+
+  # Element Web Client
+  element-web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: element-web
+    environment:
+      # Use an unprivileged port — nginx-unprivileged cannot bind to port 80
+      ELEMENT_WEB_PORT: ${ELEMENT_WEB_PORT}
+    ports:
+      - "${ELEMENT_WEB_PORT}:${ELEMENT_WEB_PORT}"
+    volumes:
+      # Mount your custom config.json at runtime so it is picked up by the
+      # entrypoint script (which copies /app/config*.json → /tmp/element-web-config/)
+      - ./apps/web/config.json:/app/config.json:ro
+    networks:
+      - dynamic-rooms
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/config.json"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # Dynamic Room Bot Server
+  bot:
+    build:
+      context: .
+      dockerfile: bot-server/Dockerfile
+    container_name: dynamic-room-bot
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      MATRIX_HOMESERVER_URL: ${MATRIX_HOMESERVER_URL}
+      MATRIX_BOT_TOKEN: ${MATRIX_BOT_TOKEN}
+      MATRIX_BOT_USER_ID: ${MATRIX_BOT_USER_ID}
+      BUNDLE_PORT: ${BUNDLE_PORT}
+      BUNDLE_BASE_URL: ${BUNDLE_BASE_URL}
+    ports:
+      - "${BUNDLE_PORT}:${BUNDLE_PORT}"
+    volumes:
+      # Persist generated bundles across restarts
+      - bot-bundles:/app/public/bundles
+      # Workspace for Claude Code (optional, for debugging)
+      - bot-workspace:/app/renderer-workspace
+    networks:
+      - dynamic-rooms
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  bot-bundles:
+  bot-workspace:
+
+networks:
+  dynamic-rooms:
+    driver: bridge
