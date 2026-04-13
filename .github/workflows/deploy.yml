@@ -38,6 +38,29 @@ jobs:
                     -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.HETZNER_PORT || 22 }} $SSH_OPTS" \
                     ./ ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }}:~/element-web/
 
+            - name: Write production .env on server
+              run: |
+                  ssh -i ~/.ssh/deploy_key -p ${{ secrets.HETZNER_PORT || 22 }} $SSH_OPTS \
+                    ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }} bash -s << 'REMOTE'
+                  set -e
+                  cd ~/element-web
+
+                  # Back up existing .env if present
+                  [ -f .env ] && cp .env ".env.backup.$(date +%s)"
+
+                  printf '%s\n' \
+                    'ELEMENT_WEB_PORT=${{ secrets.ELEMENT_WEB_PORT || '8088' }}' \
+                    'NODE_ENV=production' \
+                    'MATRIX_HOMESERVER_URL=${{ secrets.MATRIX_HOMESERVER_URL }}' \
+                    'MATRIX_BOT_TOKEN=${{ secrets.MATRIX_BOT_TOKEN }}' \
+                    'MATRIX_BOT_USER_ID=${{ secrets.MATRIX_BOT_USER_ID }}' \
+                    'BUNDLE_PORT=${{ secrets.BUNDLE_PORT || '3002' }}' \
+                    'BUNDLE_BASE_URL=http://${{ secrets.HETZNER_HOST }}:${{ secrets.BUNDLE_PORT || '3002' }}' \
+                    'GENERATE_API_URL=http://${{ secrets.HETZNER_HOST }}:${{ secrets.BUNDLE_PORT || '3002' }}/generate' \
+                    'ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}' \
+                    > .env
+                  REMOTE
+
             - name: Build and deploy
               run: |
                   ssh -i ~/.ssh/deploy_key -p ${{ secrets.HETZNER_PORT || 22 }} $SSH_OPTS \
