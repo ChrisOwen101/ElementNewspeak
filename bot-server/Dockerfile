@@ -65,18 +65,18 @@ RUN mkdir -p public/bundles renderer-workspace && \
 # Switch to non-root user
 USER nodejs
 
-# Expose the bundle server port (default: 3001)
-EXPOSE 3001
+# Expose the bundle server port (default: 3002)
+EXPOSE ${BUNDLE_PORT:-3002}
 
-# Health check
+# Health check — uses the BUNDLE_PORT env var set at runtime
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:3001/health || exit 1
+    CMD curl -f http://localhost:${BUNDLE_PORT:-3002}/health || exit 1
 
 # Environment variables (can be overridden at runtime)
 ENV NODE_ENV=production
 ENV MATRIX_HOMESERVER_URL=http://matrix:8008
-ENV BUNDLE_PORT=3001
-ENV BUNDLE_BASE_URL=http://localhost:3001
+ENV BUNDLE_PORT=3002
+ENV BUNDLE_BASE_URL=http://localhost:3002
 
 # Start the bot server
 CMD ["node", "dist/index.js"]

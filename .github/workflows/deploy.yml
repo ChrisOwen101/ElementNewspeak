@@ -34,6 +34,7 @@ jobs:
                     --exclude=node_modules \
                     --exclude=.git \
                     --exclude=.env \
+                    --exclude=apps/web/config.json \
                     -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.HETZNER_PORT || 22 }} $SSH_OPTS" \
                     ./ ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }}:~/element-web/
 
