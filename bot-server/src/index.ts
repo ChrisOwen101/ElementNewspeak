@@ -35,9 +35,20 @@ async function generate(roomId: string, userPrompt: string): Promise<string> {
     await fs.mkdir(path.join(outputDir, "src"), { recursive: true })
     await fs.mkdir(path.join(outputDir, "dist"), { recursive: true })
 
-    // 2. Read system prompt and build user prompt
+    // 2. Check if this is an edit (existing files) or a new generation
+    const existingSrc = path.join(outputDir, "src", "index.html")
+    let isEdit = false
+    try {
+        await fs.access(existingSrc)
+        isEdit = true
+    } catch {
+        // No existing file — this is a new generation
+    }
+
+    // 3. Read system prompt and build user prompt
     const systemPrompt = await fs.readFile(SYSTEM_PROMPT_PATH, "utf-8")
-    const prompt = buildPrompt(userPrompt)
+    const prompt = isEdit ? buildEditPrompt(userPrompt) : buildPrompt(userPrompt)
+    console.log(`[server] ${isEdit ? "Editing" : "Generating"} for ${roomId} (cwd: ${outputDir})...`)
     console.log(`[server] Invoking Claude Code for ${roomId} (cwd: ${outputDir})...`)
 
     // 3. Invoke Claude Code using spawn to stream output and avoid buffer limits
@@ -128,6 +139,20 @@ Build a self-contained web component based on this user request:
 "${userPrompt}"
 
 Write the output to src/index.html in the current directory, then copy it to dist/index.html.
+Verify dist/index.html exists before finishing.
+`.trim()
+}
+
+function buildEditPrompt(userPrompt: string): string {
+    return `
+There is an existing self-contained web component in src/index.html.
+The user wants to modify it. Read src/index.html first, then apply the following changes:
+
+"${userPrompt}"
+
+Only edit files inside the current directory (src/ and dist/).
+Do NOT create new files outside these directories.
+After editing src/index.html, copy it to dist/index.html.
 Verify dist/index.html exists before finishing.
 `.trim()
 }

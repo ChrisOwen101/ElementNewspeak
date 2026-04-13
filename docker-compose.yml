@@ -33,6 +33,7 @@ services:
         container_name: dynamic-room-bot
         environment:
             NODE_ENV: ${NODE_ENV}
+            ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
             MATRIX_HOMESERVER_URL: ${MATRIX_HOMESERVER_URL}
             MATRIX_BOT_TOKEN: ${MATRIX_BOT_TOKEN}
             MATRIX_BOT_USER_ID: ${MATRIX_BOT_USER_ID}

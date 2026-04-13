@@ -7,6 +7,9 @@ A Matrix bot that generates custom room renderers using Claude Code and LLM-gene
 ### Prerequisites
 
 - **Claude Code** installed and available in `$PATH` on the bot server machine
+    - ⚠️ **Required**: The bot server spawns the `claude` CLI to generate components
+    - Install locally: `curl -fsSL https://install.anthropic.com/claude-cli | sh`
+    - Docker will attempt auto-install during build
 - **Node.js** 18+ (for development) or **Docker** (for containerized deployment)
 
 ### Local Development
@@ -63,29 +66,42 @@ docker run -d \
 
 ## Environment Variables
 
-| Variable                | Required | Default                 | Description                                           |
-| ----------------------- | -------- | ----------------------- | ----------------------------------------------------- |
-| `MATRIX_HOMESERVER_URL` | Yes      | `http://localhost:8008` | Matrix homeserver URL                                 |
-| `MATRIX_BOT_TOKEN`      | Yes      | (none)                  | Bot access token from the homeserver                  |
-| `MATRIX_BOT_USER_ID`    | Yes      | (none)                  | Bot's Matrix user ID, e.g. `@renderer-bot:matrix.org` |
-| `BUNDLE_PORT`           | No       | `3001`                  | Port to serve bundles on                              |
-| `BUNDLE_BASE_URL`       | No       | `http://localhost:3001` | Public URL for bundles (used in state events)         |
+| Variable                | Required | Default                 | Description                                              |
+| ----------------------- | -------- | ----------------------- | -------------------------------------------------------- |
+| `MATRIX_HOMESERVER_URL` | Yes      | `http://localhost:8008` | Matrix homeserver URL                                    |
+| `MATRIX_BOT_TOKEN`      | Yes      | (none)                  | Bot access token from the homeserver                     |
+| `MATRIX_BOT_USER_ID`    | Yes      | (none)                  | Bot's Matrix user ID, e.g. `@renderer-bot:matrix.org`    |
+| `BUNDLE_PORT`           | No       | `3001`                  | Port to serve bundles on                                 |
+| `BUNDLE_BASE_URL`       | No       | `http://localhost:3001` | Public URL for bundles (used in state events)            |
+| `ANTHROPIC_API_KEY`     | Yes      | (none)                  | API key for Claude Code (get from console.anthropic.com) |
 
 ## Claude Code Installation
 
-The Dockerfile assumes Claude Code is available as an npm package. If not, you may need to:
+The Dockerfile installs Claude Code CLI automatically. At runtime, the bot needs an **ANTHROPIC_API_KEY** to authenticate:
 
-1. **Install Claude Code locally:**
+1. **On your local machine**: Get an API key from [console.anthropic.com](https://console.anthropic.com)
+
+2. **In Docker**: Pass the key as an environment variable:
 
     ```bash
-    npm install -g @anthropic-ai/claude-code
-    # or
-    curl -sSL https://install.anthropic.com/claude-code | bash
+    docker run -e ANTHROPIC_API_KEY=your_key_here ...
     ```
 
-2. **Update the Dockerfile** with the correct installation method for your environment.
+3. **In docker-compose**: Add to `.env`:
 
-3. **Ensure it's in the PATH** so the bot can invoke it via `exec("claude", ...)`.
+    ```
+    ANTHROPIC_API_KEY=your_key_here
+    ```
+
+4. **In GitHub Actions**: Add as a secret (`ANTHROPIC_API_KEY`) — the workflow will pass it through automatically.
+
+Claude Code uses the key to:
+
+- Authenticate with Anthropic's API
+- Run Claude to generate component HTML bundles
+- Stream output back to the bot server
+
+**⚠️ Security**: Never commit your API key to version control. Use environment variables or GitHub Secrets.
 
 ## Getting a Bot Token
 

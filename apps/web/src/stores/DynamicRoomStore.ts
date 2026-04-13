@@ -167,9 +167,13 @@ export class DynamicRoomStore extends AsyncStoreWithClient<DynamicRoomStoreState
             return
         }
 
-        // Set status to pending and notify listeners
-        this.statuses.set(roomId, "pending")
-        this.emit("update", roomId)
+        // Set status to pending only if there's no existing renderer (first generation).
+        // For edits, keep the current iframe visible while the new version is built.
+        const isEdit = this.statuses.get(roomId) === "ready"
+        if (!isEdit) {
+            this.statuses.set(roomId, "pending")
+            this.emit("update", roomId)
+        }
 
         try {
             const response = await fetch(GENERATE_API_URL, {

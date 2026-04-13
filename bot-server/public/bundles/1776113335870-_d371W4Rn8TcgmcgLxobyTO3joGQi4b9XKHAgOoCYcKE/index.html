@@ -13,7 +13,7 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: red;
+            background: #15191E;
             color: #F4F4F5;
             padding: 20px;
             line-height: 1.6;
@@ -638,10 +638,7 @@
             }).join('');
 
             return `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                    <button class="back-btn" onclick="backToList()">← Back to recipes</button>
-                    <button class="btn" onclick="openAddRecipeModal()">+ Add Recipe</button>
-                </div>
+                <button class="back-btn" onclick="backToList()">← Back to recipes</button>
                 <div class="recipe-detail">
                     <div class="recipe-detail-header">
                         <div>
