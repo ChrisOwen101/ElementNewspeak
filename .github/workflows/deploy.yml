@@ -42,15 +42,9 @@ jobs:
                   echo "${{ secrets.HETZNER_SSH_KEY }}" > ~/.ssh/deploy_key
                   chmod 600 ~/.ssh/deploy_key
 
-                  cat >> ~/.ssh/config << EOF
-                  Host hetzner
-                      HostName $HETZNER_HOST
-                      User $HETZNER_USER
-                      Port $HETZNER_PORT
-                      IdentityFile ~/.ssh/deploy_key
-                      StrictHostKeyChecking accept-new
-                      UserKnownHostsFile /dev/null
-                  EOF
+                  printf "Host hetzner\n  HostName %s\n  User %s\n  Port %s\n  IdentityFile ~/.ssh/deploy_key\n  StrictHostKeyChecking accept-new\n  UserKnownHostsFile /dev/null\n" \
+                    "$HETZNER_HOST" "$HETZNER_USER" "$HETZNER_PORT" > ~/.ssh/config
+                  chmod 600 ~/.ssh/config
 
                   # Copy the full repo to the server for docker compose build
                   rsync -az --delete \
