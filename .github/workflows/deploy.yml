@@ -11,154 +11,79 @@ concurrency:
     group: deploy-${{ github.ref }}
     cancel-in-progress: false
 
+env:
+    SSH_OPTS: -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/dev/null
+
 jobs:
     deploy:
         runs-on: ubuntu-latest
         timeout-minutes: 30
-        environment: production
 
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
 
-            - name: Set up Docker Buildx
-              uses: docker/setup-buildx-action@v3
-
-            - name: Login to Docker Registry (optional)
-              uses: docker/login-action@v3
-              with:
-                  registry: ${{ vars.DOCKER_REGISTRY }}
-                  username: ${{ secrets.DOCKER_USERNAME }}
-                  password: ${{ secrets.DOCKER_PASSWORD }}
-              if: vars.DOCKER_REGISTRY != ''
-
-            - name: Deploy to Hetzner
-              env:
-                  HETZNER_HOST: ${{ secrets.HETZNER_HOST }}
-                  HETZNER_USER: ${{ secrets.HETZNER_USER }}
-                  HETZNER_PORT: ${{ secrets.HETZNER_PORT || 22 }}
+            - name: Setup SSH key
               run: |
-                  mkdir -p ~/.ssh
+                  install -m 600 -D /dev/null ~/.ssh/deploy_key
                   echo "${{ secrets.HETZNER_SSH_KEY }}" > ~/.ssh/deploy_key
-                  chmod 600 ~/.ssh/deploy_key
 
-                  printf "Host hetzner\n  HostName %s\n  User %s\n  Port %s\n  IdentityFile ~/.ssh/deploy_key\n  StrictHostKeyChecking accept-new\n  UserKnownHostsFile /dev/null\n" \
-                    "$HETZNER_HOST" "$HETZNER_USER" "$HETZNER_PORT" > ~/.ssh/config
-                  chmod 600 ~/.ssh/config
-
-                  # Copy the full repo to the server for docker compose build
+            - name: Copy code to server
+              run: |
                   rsync -az --delete \
                     --exclude=node_modules \
                     --exclude=.git \
                     --exclude=.env \
-                    -e "ssh -F ~/.ssh/config" \
-                    ./ hetzner:~/element-web/
+                    -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.HETZNER_PORT || 22 }} $SSH_OPTS" \
+                    ./ ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }}:~/element-web/
 
-            - name: Build and restart services
-              env:
-                  HETZNER_HOST: ${{ secrets.HETZNER_HOST }}
-                  HETZNER_USER: ${{ secrets.HETZNER_USER }}
-                  HETZNER_PORT: ${{ secrets.HETZNER_PORT || 22 }}
+            - name: Build and deploy
               run: |
-                  ssh -F ~/.ssh/config hetzner << 'REMOTE_COMMANDS'
-                  cd ~/element-web || exit 1
+                  ssh -i ~/.ssh/deploy_key -p ${{ secrets.HETZNER_PORT || 22 }} $SSH_OPTS \
+                    ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }} bash -s << 'REMOTE'
+                  set -e
+                  cd ~/element-web
 
-                  echo "[$(date)] Starting Element Web deployment..." >> deployment.log
+                  echo "[$(date)] Starting deployment..." >> deployment.log
 
-                  # Gracefully stop only Element services (not other containers)
-                  echo "[$(date)] Stopping existing Element services..." >> deployment.log
-                  docker compose down --remove-orphans || true
+                  # Stop existing Element services only
+                  docker compose down --remove-orphans 2>/dev/null || true
+                  sleep 3
 
-                  # Wait for containers to fully stop
-                  sleep 5
-
-                  # Build and start services
-                  echo "[$(date)] Building and starting Element services..." >> deployment.log
+                  # Build and start
                   docker compose build
                   docker compose up -d
 
                   # Wait for services to initialize
                   sleep 15
 
-                  echo "[$(date)] Checking service health..." >> deployment.log
-                  REMOTE_COMMANDS
-
-            - name: Health check
-              env:
-                  HETZNER_HOST: ${{ secrets.HETZNER_HOST }}
-                  HETZNER_USER: ${{ secrets.HETZNER_USER }}
-                  HETZNER_PORT: ${{ secrets.HETZNER_PORT || 22 }}
-              run: |
-                  ssh -F ~/.ssh/config hetzner << 'REMOTE_COMMANDS'
-                  cd ~/element-web || exit 1
-
-                  # Check if containers are running
+                  # Health checks
                   echo "Checking container status..."
                   docker compose ps
 
-                  # Verify Element Web is responding
-                  echo "Verifying Element Web health..."
-                  if docker exec element-web wget -q --spider http://localhost:8080/config.json\; then
-                      echo "✓ Element Web is healthy"
-                  else
-                      echo "✗ Element Web health check failed"
-                      echo "Logs:"
-                      docker compose logs element-web | tail -50
-                      exit 1
-                  fi
+                  echo "Verifying Element Web..."
+                  docker exec element-web wget -q --spider http://localhost:8080/config.json
+                  echo "✓ Element Web is healthy"
 
-                  # Verify Bot Server is responding
-                  echo "Verifying Bot Server health..."
-                  if docker exec dynamic-room-bot curl -f http://localhost:3001/health 2>/dev/null; then
-                      echo "✓ Bot Server is healthy"
-
-                      # Verify Claude Code is available in bot container
-                      echo "Checking Claude Code installation..."
-                      if docker exec dynamic-room-bot which claude >/dev/null 2>&1; then
-                          echo "✓ Claude Code is available"
-                      else
-                          echo "⚠ Claude Code may not be available in container"
-                      fi
-                  else
-                      echo "✗ Bot Server health check failed"
-                      echo "Logs:"
-                      docker compose logs bot | tail -50
-                      exit 1
-                  fi
+                  echo "Verifying Bot Server..."
+                  docker exec dynamic-room-bot curl -sf http://localhost:3001/health
+                  echo "✓ Bot Server is healthy"
 
                   echo "[$(date)] Deployment successful!" >> deployment.log
-                  REMOTE_COMMANDS
+                  REMOTE
 
             - name: Rollback on failure
               if: failure()
-              env:
-                  HETZNER_HOST: ${{ secrets.HETZNER_HOST }}
-                  HETZNER_USER: ${{ secrets.HETZNER_USER }}
-                  HETZNER_PORT: ${{ secrets.HETZNER_PORT || 22 }}
               run: |
-                  ssh -F ~/.ssh/config hetzner << 'REMOTE_COMMANDS'
-                  cd ~/element-web || exit 1
-
-                  echo "[$(date)] Deployment failed! Rolling back..." >> deployment.log
-
-                  # Stop current services
-                  docker compose down || true
-
-                  # Restore from backup if available
+                  ssh -i ~/.ssh/deploy_key -p ${{ secrets.HETZNER_PORT || 22 }} $SSH_OPTS \
+                    ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }} bash -s << 'REMOTE'
+                  cd ~/element-web || exit 0
+                  echo "[$(date)] Deployment failed, rolling back..." >> deployment.log
+                  docker compose down 2>/dev/null || true
                   LATEST_BACKUP=$(ls -t .env.backup.* 2>/dev/null | head -1)
                   if [ -n "$LATEST_BACKUP" ]; then
-                      echo "Restoring from backup: $LATEST_BACKUP"
                       cp "$LATEST_BACKUP" .env
                       docker compose up -d
-                      sleep 10
                       echo "[$(date)] Rollback completed" >> deployment.log
                   fi
-                  REMOTE_COMMANDS
-
-            - name: Notification on success
-              if: success()
-              run: echo "✓ Deployment to Hetzner completed successfully"
-
-            - name: Notification on failure
-              if: failure()
-              run: echo "✗ Deployment failed and rollback was attempted. Check logs."
+                  REMOTE

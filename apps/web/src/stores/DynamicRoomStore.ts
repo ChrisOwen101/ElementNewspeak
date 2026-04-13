@@ -87,13 +87,17 @@ export class DynamicRoomStore extends AsyncStoreWithClient<DynamicRoomStoreState
     // ─── Lifecycle ──────────────────────────────────────────────────────
 
     protected async onReady(): Promise<void> {
+        logger.info("DynamicRoomStore: onReady called, matrixClient?", !!this.matrixClient)
         if (!this.matrixClient) return
         this.matrixClient.on(RoomStateEvent.Events, this.onRoomStateEvent)
 
         // Bootstrap from already-known rooms
-        for (const room of this.matrixClient.getRooms()) {
+        const rooms = this.matrixClient.getRooms()
+        logger.info(`DynamicRoomStore: Bootstrapping from ${rooms.length} rooms`)
+        for (const room of rooms) {
             this.loadRendererFromRoom(room)
         }
+        logger.info(`DynamicRoomStore: After bootstrap, renderers=${this.renderers.size}, statuses=${this.statuses.size}`)
         this.emit("update", null)
     }
 
@@ -104,8 +108,10 @@ export class DynamicRoomStore extends AsyncStoreWithClient<DynamicRoomStoreState
     }
 
     protected async onAction(payload: ActionPayload): Promise<void> {
+        logger.info(`DynamicRoomStore: onAction called with action=${payload.action}`)
         if (payload.action === Action.SubmitDynamicRoomPrompt) {
             const { roomId, prompt } = payload as SubmitDynamicRoomPromptPayload
+            logger.info(`DynamicRoomStore: Handling SubmitDynamicRoomPrompt for room=${roomId}, prompt=${prompt.slice(0, 50)}...`)
             await this.submitPrompt(roomId, prompt)
         }
     }
@@ -121,6 +127,7 @@ export class DynamicRoomStore extends AsyncStoreWithClient<DynamicRoomStoreState
         if (!room) return
 
         if (eventType === RENDERER_STATE_EVENT) {
+            logger.info(`DynamicRoomStore: Received ${RENDERER_STATE_EVENT} state event for room ${roomId}`)
             this.loadRendererFromRoom(room)
             this.emit("update", roomId)
         }
@@ -149,9 +156,13 @@ export class DynamicRoomStore extends AsyncStoreWithClient<DynamicRoomStoreState
 
     private loadRendererFromRoom(room: Room): void {
         const event = room.currentState.getStateEvents(RENDERER_STATE_EVENT, "")
-        if (!event) return
+        if (!event) {
+            logger.info(`DynamicRoomStore: No ${RENDERER_STATE_EVENT} state event in room ${room.roomId} (${room.name})`)
+            return
+        }
 
         const content = event.getContent<RendererStateEventContent>()
+        logger.info(`DynamicRoomStore: Found renderer in room ${room.roomId} (${room.name}), bundleUrl=${content.bundleUrl}`)
         if (!content.bundleUrl) return
 
         this.renderers.set(room.roomId, {
