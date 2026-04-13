@@ -5,111 +5,115 @@
  * Please see LICENSE files in the repository root for full details.
  */
 
-import React, { type JSX } from "react";
-import { IconButton, H1 } from "@vector-im/compound-web";
-import ComposeIcon from "@vector-im/compound-design-tokens/assets/web/icons/compose";
+import React, { type JSX } from "react"
+import { IconButton, H1 } from "@vector-im/compound-web"
+import ComposeIcon from "@vector-im/compound-design-tokens/assets/web/icons/compose"
 
-import { type ViewModel, useViewModel } from "../../viewmodel";
-import { Flex } from "../../utils/Flex";
-import { useI18n } from "../../utils/i18nContext";
-import { ComposeMenuView, OptionMenuView, SpaceMenuView } from "./menu";
-import styles from "./RoomListHeaderView.module.css";
+import { type ViewModel, useViewModel } from "../../viewmodel"
+import { Flex } from "../../utils/Flex"
+import { useI18n } from "../../utils/i18nContext"
+import { ComposeMenuView, OptionMenuView, SpaceMenuView } from "./menu"
+import styles from "./RoomListHeaderView.module.css"
 
 /**
  * The available sorting options for the room list.
  */
-export type SortOption = "recent" | "alphabetical" | "unread-first";
+export type SortOption = "recent" | "alphabetical" | "unread-first"
 
 export interface RoomListHeaderViewSnapshot {
     /**
      * The title of the room list
      */
-    title: string;
+    title: string
     /**
      * Whether to display the compose menu
      * True if the user can create rooms
      */
-    displayComposeMenu: boolean;
+    displayComposeMenu: boolean
     /**
      * Whether to display the space menu
      * True if there is an active space
      */
-    displaySpaceMenu: boolean;
+    displaySpaceMenu: boolean
     /**
      * Whether the user can create rooms
      */
-    canCreateRoom: boolean;
+    canCreateRoom: boolean
     /**
      * Whether the user can create video rooms
      */
-    canCreateVideoRoom: boolean;
+    canCreateVideoRoom: boolean
     /**
      * Whether the user can invite in the active space
      */
-    canInviteInSpace: boolean;
+    canInviteInSpace: boolean
     /**
      * Whether the user can access space settings
      */
-    canAccessSpaceSettings: boolean;
+    canAccessSpaceSettings: boolean
     /**
      * The currently active sort option.
      */
-    activeSortOption: SortOption;
+    activeSortOption: SortOption
     /**
      * Whether message previews are enabled in the room list.
      */
-    isMessagePreviewEnabled: boolean;
+    isMessagePreviewEnabled: boolean
 }
 
 export interface RoomListHeaderViewActions {
     /**
      * Create a chat room
      */
-    createChatRoom: (e: Event) => void;
+    createChatRoom: (e: Event) => void
     /**
      * Create a room
      */
-    createRoom: (e: Event) => void;
+    createRoom: (e: Event) => void
     /**
      * Create a video room
      */
-    createVideoRoom: () => void;
+    createVideoRoom: () => void
+    /**
+     * Create a dynamic tool room (app- prefixed)
+     */
+    createToolRoom: () => void
     /**
      * Open the active space home
      */
-    openSpaceHome: () => void;
+    openSpaceHome: () => void
     /**
      * Display the space invite dialog
      */
-    inviteInSpace: () => void;
+    inviteInSpace: () => void
     /**
      * Open the space preferences
      */
-    openSpacePreferences: () => void;
+    openSpacePreferences: () => void
     /**
      * Open the space settings
      */
-    openSpaceSettings: () => void;
+    openSpaceSettings: () => void
     /**
      * Change the sort order of the room-list.
      */
-    sort: (option: SortOption) => void;
+    sort: (option: SortOption) => void
     /**
      * Toggle message preview display in the room list.
      */
-    toggleMessagePreview: () => void;
+    toggleMessagePreview: () => void
 }
 
 /**
  * The view model for the room list header component.
  */
-export type RoomListHeaderViewModel = ViewModel<RoomListHeaderViewSnapshot, RoomListHeaderViewActions>;
+export type RoomListHeaderViewModel = ViewModel<RoomListHeaderViewSnapshot, RoomListHeaderViewActions>
 
 interface RoomListHeaderViewProps {
     /**
      * The view model for the room list header component.
      */
-    vm: RoomListHeaderViewModel;
+    vm: RoomListHeaderViewModel
 }
 
 /**
@@ -122,8 +126,8 @@ interface RoomListHeaderViewProps {
  * ```
  */
 export function RoomListHeaderView({ vm }: Readonly<RoomListHeaderViewProps>): JSX.Element {
-    const { translate: _t } = useI18n();
-    const { title, displaySpaceMenu, displayComposeMenu } = useViewModel(vm);
+    const { translate: _t } = useI18n()
+    const { title, displaySpaceMenu, displayComposeMenu } = useViewModel(vm)
 
     return (
         <Flex
@@ -159,5 +163,5 @@ export function RoomListHeaderView({ vm }: Readonly<RoomListHeaderViewProps>): J
                 </Flex>
             </Flex>
         </Flex>
-    );
+    )
 }

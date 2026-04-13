@@ -5,54 +5,54 @@ SPDX-License-Identifier: AGPL-3.0-only OR GPL-3.0-only OR LicenseRef-Element-Com
 Please see LICENSE files in the repository root for full details.
 */
 
-import dotenv from "dotenv";
-import path from "node:path";
-import fs from "node:fs";
-import { fileURLToPath } from "node:url";
-import webpack from "webpack";
-import "webpack-dev-server"; // for types
-import HtmlWebpackPlugin from "html-webpack-plugin";
-import MiniCssExtractPlugin from "mini-css-extract-plugin";
-import TerserPlugin from "terser-webpack-plugin";
-import CssMinimizerPlugin from "css-minimizer-webpack-plugin";
-import HtmlWebpackInjectPreload from "@principalstudio/html-webpack-inject-preload";
-import CopyWebpackPlugin from "copy-webpack-plugin";
-import VersionFilePlugin from "webpack-version-file-plugin";
-import { RetryChunkLoadPlugin } from "webpack-retry-chunk-load-plugin";
-import postcssSimpleVars from "postcss-simple-vars";
-import postcssHexrgba from "postcss-hexrgba";
-import postcssPresetEnv from "postcss-preset-env";
-import postcssImport from "postcss-import";
-import postcssMixins from "postcss-mixins";
-import postcssNested from "postcss-nested";
-import postcssEasings from "postcss-easings";
+import dotenv from "dotenv"
+import path from "node:path"
+import fs from "node:fs"
+import { fileURLToPath } from "node:url"
+import webpack from "webpack"
+import "webpack-dev-server" // for types
+import HtmlWebpackPlugin from "html-webpack-plugin"
+import MiniCssExtractPlugin from "mini-css-extract-plugin"
+import TerserPlugin from "terser-webpack-plugin"
+import CssMinimizerPlugin from "css-minimizer-webpack-plugin"
+import HtmlWebpackInjectPreload from "@principalstudio/html-webpack-inject-preload"
+import CopyWebpackPlugin from "copy-webpack-plugin"
+import VersionFilePlugin from "webpack-version-file-plugin"
+import { RetryChunkLoadPlugin } from "webpack-retry-chunk-load-plugin"
+import postcssSimpleVars from "postcss-simple-vars"
+import postcssHexrgba from "postcss-hexrgba"
+import postcssPresetEnv from "postcss-preset-env"
+import postcssImport from "postcss-import"
+import postcssMixins from "postcss-mixins"
+import postcssNested from "postcss-nested"
+import postcssEasings from "postcss-easings"
 
-import pkgJson from "./package.json" with { type: "json" };
-import componentsJson from "./components.json" with { type: "json" };
-import { I18nWebpackPlugin } from "./I18nWebpackPlugin.ts";
-import type { sentryWebpackPlugin as sentryWebpackPluginType } from "@sentry/webpack-plugin/webpack5";
+import pkgJson from "./package.json" with { type: "json" }
+import componentsJson from "./components.json" with { type: "json" }
+import { I18nWebpackPlugin } from "./I18nWebpackPlugin.ts"
+import type { sentryWebpackPlugin as sentryWebpackPluginType } from "@sentry/webpack-plugin/webpack5"
 
 // Environment variables
 // RIOT_OG_IMAGE_URL: specifies the URL to the image which should be used for the opengraph logo.
 // CSP_EXTRA_SOURCE: specifies a URL which should be appended to each CSP directive which uses 'self',
 //   this can be helpful if your deployment has redirects for old bundles, such as develop.element.io.
 
-let sentryWebpackPlugin: typeof sentryWebpackPluginType | undefined;
+let sentryWebpackPlugin: typeof sentryWebpackPluginType | undefined
 // This plugin throws an error on import on some platforms like ppc64le & s390x even if the plugin isn't called,
 // so we import it conditionally.
 if (process.env.SENTRY_DSN) {
     try {
-        ({ sentryWebpackPlugin } = await import("@sentry/webpack-plugin/webpack5"));
+        ({ sentryWebpackPlugin } = await import("@sentry/webpack-plugin/webpack5"))
     } catch (e) {
-        console.warn("Failed to load sentry plugin", e);
+        console.warn("Failed to load sentry plugin", e)
     }
 }
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-dotenv.config();
-let ogImageUrl = process.env.RIOT_OG_IMAGE_URL;
-if (!ogImageUrl) ogImageUrl = "https://app.element.io/themes/element/img/logos/opengraph.png";
+dotenv.config()
+let ogImageUrl = process.env.RIOT_OG_IMAGE_URL
+if (!ogImageUrl) ogImageUrl = "https://app.element.io/themes/element/img/logos/opengraph.png"
 
 const cssThemes = {
     // CSS themes
@@ -63,36 +63,36 @@ const cssThemes = {
     "theme-dark": "./res/themes/dark/css/dark.pcss",
     "theme-light-custom": "./res/themes/light-custom/css/light-custom.pcss",
     "theme-dark-custom": "./res/themes/dark-custom/css/dark-custom.pcss",
-};
+}
 
 // See docs/customisations.md
 let fileOverrides = {
     /* {[file: string]: string} */
-};
+}
 try {
-    const customisationsFile = fs.readFileSync("./customisations.json", "utf-8");
-    fileOverrides = JSON.parse(customisationsFile);
+    const customisationsFile = fs.readFileSync("./customisations.json", "utf-8")
+    fileOverrides = JSON.parse(customisationsFile)
 
     // stringify the output so it appears in logs correctly, as large files can sometimes get
     // represented as `<Object>` which is less than helpful.
-    console.log("Using customisations.json : " + JSON.stringify(fileOverrides, null, 4));
+    console.log("Using customisations.json : " + JSON.stringify(fileOverrides, null, 4))
 
     process.on("exit", () => {
-        console.log(""); // blank line
-        console.warn("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-        console.warn("!! Customisations have been deprecated and will be removed in a future release      !!");
-        console.warn("!! See https://github.com/element-hq/element-web/blob/develop/docs/customisations.md !!");
-        console.warn("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-        console.log(""); // blank line
-    });
+        console.log("") // blank line
+        console.warn("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        console.warn("!! Customisations have been deprecated and will be removed in a future release      !!")
+        console.warn("!! See https://github.com/element-hq/element-web/blob/develop/docs/customisations.md !!")
+        console.warn("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        console.log("") // blank line
+    })
 } catch {
     // ignore - not important
 }
 
 // Get the root of a node_modules dependency the name of its import
 function getPackageRoot(dep: string, target = "package.json"): string {
-    const targetPath = import.meta.resolve(`${dep}${target ? "/" + target : ""}`);
-    return path.dirname(fileURLToPath(targetPath));
+    const targetPath = import.meta.resolve(`${dep}${target ? "/" + target : ""}`)
+    return path.dirname(fileURLToPath(targetPath))
 }
 
 function parseOverridesToReplacements(overrides: Record<string, string>): webpack.NormalModuleReplacementPlugin[] {
@@ -102,16 +102,16 @@ function parseOverridesToReplacements(overrides: Record<string, string>): webpac
             // need to do anything special to protect against regex overrunning, etc.
             new RegExp(oldPath.replace(/\//g, "[\\/\\\\]").replace(/\./g, "\\.")),
             function (resource) {
-                resource.request = path.resolve(__dirname, newPath);
-                resource.createData.resource = path.resolve(__dirname, newPath);
+                resource.request = path.resolve(__dirname, newPath)
+                resource.createData.resource = path.resolve(__dirname, newPath)
                 // Starting with Webpack 5 we also need to set the context as otherwise replacing
                 // files in e.g. matrix-js-sdk with files from element-web will try to resolve
                 // them within matrix-js-sdk (https://github.com/webpack/webpack/issues/17716)
-                resource.context = path.dirname(resource.request);
-                resource.createData.context = path.dirname(resource.createData.resource);
+                resource.context = path.dirname(resource.request)
+                resource.createData.context = path.dirname(resource.createData.resource)
             },
-        );
-    });
+        )
+    })
 }
 
 const moduleReplacementPlugins = [
@@ -119,7 +119,7 @@ const moduleReplacementPlugins = [
 
     // Allow customisations to override the default components too
     ...parseOverridesToReplacements(fileOverrides),
-];
+]
 
 export default (env: string, argv: Record<string, any>): webpack.Configuration => {
     // Establish settings based on the environment and args.
@@ -130,33 +130,33 @@ export default (env: string, argv: Record<string, any>): webpack.Configuration =
     //      (called by developers, runs the continuous reload script)
     // process.env.CI_PACKAGE is set when pnpm build is called from scripts/ci_package.sh
     //      (called to build nightly and develop.element.io)
-    const nodeEnv = argv.mode;
-    const devMode = nodeEnv !== "production";
-    const enableMinification = !devMode && !process.env.CI_PACKAGE;
+    const nodeEnv = argv.mode
+    const devMode = nodeEnv !== "production"
+    const enableMinification = !devMode && !process.env.CI_PACKAGE
 
-    let VERSION = process.env.VERSION;
+    let VERSION = process.env.VERSION
     if (!VERSION) {
-        VERSION = pkgJson.version;
+        VERSION = pkgJson.version
         if (devMode) {
-            VERSION += "-dev";
+            VERSION += "-dev"
         }
     }
 
-    const development: Pick<webpack.Configuration, "devtool"> = {};
+    const development: Pick<webpack.Configuration, "devtool"> = {}
     if (devMode) {
         // Embedded source maps for dev builds, can't use eval-source-map due to CSP
-        development["devtool"] = "inline-source-map";
+        development["devtool"] = "inline-source-map"
     } else {
         // High quality source maps in separate .map files which include the source. This doesn't bulk up the .js
         // payload file size, which is nice for performance but also necessary to get the bundle to a small enough
         // size that sentry will accept the upload.
-        development["devtool"] = "source-map";
+        development["devtool"] = "source-map"
     }
 
     // Resolve the directories for the js-sdk for later use. We resolve these early, so we
     // don't have to call them over and over. We also resolve to the package.json instead of the src
     // directory, so we don't have to rely on an index.js or similar file existing.
-    const jsSdkSrcDir = path.join(getPackageRoot("matrix-js-sdk"), "src");
+    const jsSdkSrcDir = path.join(getPackageRoot("matrix-js-sdk"), "src")
 
     return {
         ...development,
@@ -216,14 +216,14 @@ export default (env: string, argv: Record<string, any>): webpack.Configuration =
             minimize: enableMinification,
             minimizer: enableMinification
                 ? [
-                      new TerserPlugin({
-                          // Already minified and includes an auto-generated license comment
-                          // that the plugin would otherwise pointlessly extract into a separate
-                          // file. We add the actual license using CopyWebpackPlugin below.
-                          exclude: "jitsi_external_api.min.js",
-                      }),
-                      new CssMinimizerPlugin(),
-                  ]
+                    new TerserPlugin({
+                        // Already minified and includes an auto-generated license comment
+                        // that the plugin would otherwise pointlessly extract into a separate
+                        // file. We add the actual license using CopyWebpackPlugin below.
+                        exclude: "jitsi_external_api.min.js",
+                    }),
+                    new CssMinimizerPlugin(),
+                ]
                 : [],
 
             // Set the value of `process.env.NODE_ENV` for libraries like React
@@ -303,25 +303,25 @@ export default (env: string, argv: Record<string, any>): webpack.Configuration =
                     test: /\.(ts|js)x?$/,
                     include: (f: string) => {
                         // our own source needs babel-ing
-                        if (f.startsWith(path.resolve(__dirname, "src"))) return true;
+                        if (f.startsWith(path.resolve(__dirname, "src"))) return true
 
                         // we use the original source files of js-sdk, so we need to
                         // run them through babel. Because the path tested is the resolved, absolute
                         // path, these could be anywhere thanks to linking. We must also not
                         // include node modules inside these modules, so we add 'src'.
-                        if (f.startsWith(jsSdkSrcDir)) return true;
+                        if (f.startsWith(jsSdkSrcDir)) return true
 
                         // Some of the syntax in this package is not understood by
                         // either webpack or our babel setup.
                         // When we do get to upgrade our current setup, this should
                         // probably be removed.
-                        if (f.includes(path.join("@vector-im", "compound-web"))) return true;
+                        if (f.includes(path.join("@vector-im", "compound-web"))) return true
 
                         // but we can't run all of our dependencies through babel (many of them still
                         // use module.exports which breaks if babel injects an 'include' for its
                         // polyfills: probably fixable but babeling all our dependencies is probably
                         // not necessary anyway). So, for anything else, don't babel.
-                        return false;
+                        return false
                     },
                     loader: "babel-loader",
                     options: {
@@ -536,8 +536,8 @@ export default (env: string, argv: Record<string, any>): webpack.Configuration =
                                 name: "[name].[hash:7].[ext]",
                                 outputPath: getAssetOutputPath,
                                 publicPath: function (url: string, resourcePath: string) {
-                                    const outputPath = getAssetOutputPath(url, resourcePath);
-                                    return toPublicPath(outputPath);
+                                    const outputPath = getAssetOutputPath(url, resourcePath)
+                                    return toPublicPath(outputPath)
                                 },
                             },
                         },
@@ -548,8 +548,8 @@ export default (env: string, argv: Record<string, any>): webpack.Configuration =
                                 name: "[name].[hash:7].[ext]",
                                 outputPath: getAssetOutputPath,
                                 publicPath: function (url: string, resourcePath: string) {
-                                    const outputPath = getAssetOutputPath(url, resourcePath);
-                                    return toPublicPath(outputPath);
+                                    const outputPath = getAssetOutputPath(url, resourcePath)
+                                    return toPublicPath(outputPath)
                                 },
                             },
                         },
@@ -569,8 +569,8 @@ export default (env: string, argv: Record<string, any>): webpack.Configuration =
                                     // CSS image usages end up in the `bundles/[hash]` output
                                     // directory, so we adjust the final path to navigate up
                                     // twice.
-                                    const outputPath = getAssetOutputPath(url, resourcePath);
-                                    return toPublicPath(path.join("../..", outputPath));
+                                    const outputPath = getAssetOutputPath(url, resourcePath)
+                                    return toPublicPath(path.join("../..", outputPath))
                                 },
                             },
                         },
@@ -593,8 +593,8 @@ export default (env: string, argv: Record<string, any>): webpack.Configuration =
                                     // CSS image usages end up in the `bundles/[hash]` output
                                     // directory, so we adjust the final path to navigate up
                                     // twice.
-                                    const outputPath = getAssetOutputPath(url, resourcePath);
-                                    return toPublicPath(path.join("../..", outputPath));
+                                    const outputPath = getAssetOutputPath(url, resourcePath)
+                                    return toPublicPath(path.join("../..", outputPath))
                                 },
                             },
                         },
@@ -606,8 +606,8 @@ export default (env: string, argv: Record<string, any>): webpack.Configuration =
                                 name: "[name].[hash:7].[ext]",
                                 outputPath: getAssetOutputPath,
                                 publicPath: function (url: string, resourcePath: string) {
-                                    const outputPath = getAssetOutputPath(url, resourcePath);
-                                    return toPublicPath(outputPath);
+                                    const outputPath = getAssetOutputPath(url, resourcePath)
+                                    return toPublicPath(outputPath)
                                 },
                             },
                         },
@@ -699,8 +699,8 @@ export default (env: string, argv: Record<string, any>): webpack.Configuration =
                     assets: "./webapp/bundles/**",
                 },
                 errorHandler: (err) => {
-                    console.warn("Sentry CLI Plugin: " + err.message);
-                    console.log(`::warning title=Sentry error::${err.message}`);
+                    console.warn("Sentry CLI Plugin: " + err.message)
+                    console.log(`::warning title=Sentry error::${err.message}`)
                 },
             }),
 
@@ -740,7 +740,12 @@ export default (env: string, argv: Record<string, any>): webpack.Configuration =
             }),
 
             // We bake the version in so the app knows its version immediately
-            new webpack.DefinePlugin({ "process.env.VERSION": JSON.stringify(VERSION) }),
+            new webpack.DefinePlugin({
+                "process.env.VERSION": JSON.stringify(VERSION),
+                "process.env.GENERATE_API_URL": JSON.stringify(
+                    process.env.GENERATE_API_URL ?? "http://localhost:3001/generate",
+                ),
+            }),
             // But we also write it to a file which gets polled for update detection
             new VersionFilePlugin({
                 outputFile: "version",
@@ -806,11 +811,14 @@ export default (env: string, argv: Record<string, any>): webpack.Configuration =
             // case of build failures
             hot: "only",
 
+            // Bind to all interfaces so the dev server is reachable on the LAN
+            host: "0.0.0.0",
+
             // Disable host check
             allowedHosts: "all",
         },
-    };
-};
+    }
+}
 
 /**
  * Merge assets found via CSS and imports into a single tree, while also preserving
@@ -821,14 +829,14 @@ export default (env: string, argv: Record<string, any>): webpack.Configuration =
  * @return The returned paths will look like `img/warning.1234567.svg`.
  */
 function getAssetOutputPath(url: string, resourcePath: string): string {
-    const isKaTeX = resourcePath.includes("KaTeX");
-    const isFontSource = resourcePath.includes("@fontsource");
-    const mobileGuideAssetsPath = path.join("mobile_guide", "assets");
-    const isMobileGuide = resourcePath.includes(mobileGuideAssetsPath);
+    const isKaTeX = resourcePath.includes("KaTeX")
+    const isFontSource = resourcePath.includes("@fontsource")
+    const mobileGuideAssetsPath = path.join("mobile_guide", "assets")
+    const isMobileGuide = resourcePath.includes(mobileGuideAssetsPath)
     // `res` is the parent dir for our own assets in various layers
     // `dist` is the parent dir for KaTeX assets
     // `files` is the parent dir for @fontsource assets
-    const prefix = /^.*[/\\](dist|res|files)[/\\]/;
+    const prefix = /^.*[/\\](dist|res|files)[/\\]/
 
     /**
      * Only needed for https://github.com/element-hq/element-web/pull/15939
@@ -836,9 +844,9 @@ function getAssetOutputPath(url: string, resourcePath: string): string {
      * images coming from @vector-im/compound-web.
      */
     if (isKaTeX && !resourcePath.match(prefix)) {
-        throw new Error(`Unexpected asset path: ${resourcePath}`);
+        throw new Error(`Unexpected asset path: ${resourcePath}`)
     }
-    let outputDir = path.dirname(resourcePath).replace(prefix, "");
+    let outputDir = path.dirname(resourcePath).replace(prefix, "")
 
     /**
      * Imports from Compound are "absolute", we need to strip out the prefix
@@ -848,27 +856,27 @@ function getAssetOutputPath(url: string, resourcePath: string): string {
      * package that imports external assets. This might need to be made more
      * generic in the future
      */
-    const compoundImportsPrefix = /@vector-im(?:\\|\/)compound-(.*?)(?:\\|\/)/;
-    const compoundMatch = outputDir.match(compoundImportsPrefix);
+    const compoundImportsPrefix = /@vector-im(?:\\|\/)compound-(.*?)(?:\\|\/)/
+    const compoundMatch = outputDir.match(compoundImportsPrefix)
     if (compoundMatch?.index !== undefined) {
-        outputDir = outputDir.substring(compoundMatch.index + compoundMatch[0].length);
+        outputDir = outputDir.substring(compoundMatch.index + compoundMatch[0].length)
     }
 
     if (isFontSource) {
-        outputDir = "fonts";
+        outputDir = "fonts"
     }
 
     if (isMobileGuide) {
         // Specific handling for the mobile guide assets, as they live alongside the page sources.
-        outputDir = mobileGuideAssetsPath;
+        outputDir = mobileGuideAssetsPath
     }
 
     if (isKaTeX) {
         // Add a clearly named directory segment, rather than leaving the KaTeX
         // assets loose in each asset type directory.
-        outputDir = path.join(outputDir, "KaTeX");
+        outputDir = path.join(outputDir, "KaTeX")
     }
-    return path.join(outputDir, path.basename(url));
+    return path.join(outputDir, path.basename(url))
 }
 
 /**
@@ -879,5 +887,5 @@ function getAssetOutputPath(url: string, resourcePath: string): string {
  * @returns converted path
  */
 function toPublicPath(path: string): string {
-    return path.replace(/\\/g, "/");
+    return path.replace(/\\/g, "/")
 }

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Simple Button Component</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #15191E;
+            color: #F4F4F5;
+            padding: 16px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #app {
+            width: 100%;
+            max-width: 600px;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #0DBE7F;
+            color: #FFFFFF;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        button:hover {
+            background-color: #0DA86F;
+            box-shadow: 0 4px 12px rgba(13, 190, 127, 0.3);
+        }
+
+        button:active {
+            transform: translateY(1px);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background-color: #0DBE7F;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <button onclick="handleClick()">Click Me</button>
+    </div>
+
+    <script>
+        function handleClick() {
+            // Send a message back to the parent
+            parent.postMessage({
+                type: "ACTION_SEND_EVENT",
+                eventType: "m.room.message",
+                content: { msgtype: "m.text", body: "Button clicked!" }
+            }, "*");
+        }
+
+        // Listen for room data from parent
+        window.addEventListener("message", (event) => {
+            if (event.data.type === "ROOM_DATA") {
+                const { messages, roomState } = event.data;
+                // Component can use this data if needed
+                console.log("Room data received:", { messages, roomState });
+            }
+        });
+    </script>
+</body>
+</html>

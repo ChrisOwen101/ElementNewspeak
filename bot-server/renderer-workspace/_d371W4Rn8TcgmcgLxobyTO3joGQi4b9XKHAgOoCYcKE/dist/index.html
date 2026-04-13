@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Collaborative Recipe Planner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #15191E;
+            color: #F4F4F5;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        #app {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            color: #F4F4F5;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        .btn {
+            background: #0DBD8B;
+            color: #15191E;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: #0EA878;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: #2D3748;
+            color: #F4F4F5;
+        }
+
+        .btn-secondary:hover {
+            background: #3A4556;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .btn-danger {
+            background: #E53E3E;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #C53030;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            background: #1F2937;
+            border-radius: 12px;
+            border: 2px dashed #374151;
+        }
+
+        .empty-state h2 {
+            font-size: 24px;
+            margin-bottom: 12px;
+            color: #9CA3AF;
+        }
+
+        .empty-state p {
+            color: #6B7280;
+            margin-bottom: 24px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: #1F2937;
+            border-radius: 12px;
+            padding: 32px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .modal-header h2 {
+            font-size: 22px;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: #9CA3AF;
+            font-size: 28px;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            line-height: 1;
+        }
+
+        .close-btn:hover {
+            color: #F4F4F5;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 14px;
+            color: #D1D5DB;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            background: #374151;
+            border: 1px solid #4B5563;
+            color: #F4F4F5;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #0DBD8B;
+        }
+
+        .ingredients-list {
+            margin-bottom: 12px;
+        }
+
+        .ingredient-item {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .ingredient-item input {
+            flex: 1;
+        }
+
+        .ingredient-item input:first-child {
+            flex: 2;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 24px;
+        }
+
+        .recipes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 24px;
+        }
+
+        .recipe-card {
+            background: #1F2937;
+            border-radius: 12px;
+            padding: 24px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+
+        .recipe-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .recipe-header {
+            margin-bottom: 16px;
+        }
+
+        .recipe-name {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #F4F4F5;
+        }
+
+        .recipe-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 13px;
+            color: #9CA3AF;
+            margin-bottom: 12px;
+        }
+
+        .recipe-description {
+            color: #D1D5DB;
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 16px;
+        }
+
+        .recipe-stats {
+            display: flex;
+            gap: 16px;
+            font-size: 13px;
+            color: #9CA3AF;
+        }
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .recipe-detail {
+            background: #1F2937;
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+
+        .recipe-detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 24px;
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            color: #0DBD8B;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 8px 0;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .back-btn:hover {
+            color: #0EA878;
+        }
+
+        .ingredients-section,
+        .instructions-section {
+            margin-top: 32px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #F4F4F5;
+        }
+
+        .ingredient-checklist {
+            list-style: none;
+        }
+
+        .ingredient-checklist li {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: #374151;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            transition: background 0.2s;
+        }
+
+        .ingredient-checklist li:hover {
+            background: #4B5563;
+        }
+
+        .ingredient-content {
+            flex: 1;
+        }
+
+        .ingredient-name {
+            font-weight: 500;
+            color: #F4F4F5;
+        }
+
+        .ingredient-amount {
+            color: #9CA3AF;
+            font-size: 13px;
+        }
+
+        .ingredient-claimer {
+            font-size: 12px;
+            color: #0DBD8B;
+            font-weight: 500;
+        }
+
+        .claim-btn {
+            padding: 6px 12px;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .claimed {
+            background: #065F46;
+        }
+
+        .instructions-text {
+            color: #D1D5DB;
+            line-height: 1.8;
+            white-space: pre-wrap;
+        }
+
+        .shopping-list {
+            background: #1F2937;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .shopping-list h2 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .shopping-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #374151;
+        }
+
+        .shopping-item:last-child {
+            border-bottom: none;
+        }
+
+        .shopping-item-info {
+            flex: 1;
+        }
+
+        .shopping-item-name {
+            font-weight: 500;
+            color: #F4F4F5;
+        }
+
+        .shopping-item-recipe {
+            font-size: 12px;
+            color: #9CA3AF;
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+
+        .view-toggle button {
+            padding: 8px 16px;
+            background: #2D3748;
+            border: none;
+            color: #9CA3AF;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .view-toggle button.active {
+            background: #0DBD8B;
+            color: #15191E;
+        }
+
+        .view-toggle button:hover:not(.active) {
+            background: #3A4556;
+            color: #F4F4F5;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="header">
+            <h1>🍳 Recipe Planner</h1>
+        </div>
+        <div id="content"></div>
+    </div>
+
+    <div id="addRecipeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add New Recipe</h2>
+                <button class="close-btn" onclick="closeAddRecipeModal()">&times;</button>
+            </div>
+            <form id="addRecipeForm" onsubmit="handleAddRecipe(event)">
+                <div class="form-group">
+                    <label>Recipe Name *</label>
+                    <input type="text" id="recipeName" required>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="recipeDescription"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Servings</label>
+                    <input type="number" id="recipeServings" min="1" value="4">
+                </div>
+                <div class="form-group">
+                    <label>Ingredients *</label>
+                    <div id="ingredientsList" class="ingredients-list"></div>
+                    <button type="button" class="btn btn-secondary btn-small" onclick="addIngredientField()">+ Add Ingredient</button>
+                </div>
+                <div class="form-group">
+                    <label>Instructions</label>
+                    <textarea id="recipeInstructions"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddRecipeModal()">Cancel</button>
+                    <button type="submit" class="btn">Add Recipe</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentState = {
+            messages: [],
+            roomState: {},
+            currentView: 'recipes', // 'recipes' or 'shopping'
+            selectedRecipe: null
+        };
+
+        // Listen for room data from parent
+        window.addEventListener("message", (event) => {
+            if (event.data.type === "ROOM_DATA") {
+                const { messages, roomState } = event.data;
+                currentState.messages = messages;
+                currentState.roomState = roomState;
+                render();
+            }
+        });
+
+        // Derive recipes from messages
+        function getRecipes(messages) {
+            const recipes = new Map();
+            const deletions = new Set();
+
+            for (const m of messages) {
+                if (m.type === "io.element.recipe.item") {
+                    recipes.set(m.eventId, {
+                        id: m.eventId,
+                        name: m.content.name,
+                        description: m.content.description || '',
+                        ingredients: m.content.ingredients || [],
+                        servings: m.content.servings || 4,
+                        instructions: m.content.instructions || '',
+                        author: m.senderDisplayName,
+                        timestamp: m.timestamp
+                    });
+                } else if (m.type === "io.element.recipe.delete") {
+                    deletions.add(m.content.recipeId);
+                }
+            }
+
+            // Remove deleted recipes
+            for (const id of deletions) {
+                recipes.delete(id);
+            }
+
+            return Array.from(recipes.values()).sort((a, b) => b.timestamp - a.timestamp);
+        }
+
+        // Derive ingredient claims from messages
+        function getClaims(messages) {
+            const claims = new Map();
+
+            for (const m of messages) {
+                if (m.type === "io.element.recipe.claim") {
+                    const key = `${m.content.recipeId}-${m.content.ingredientIndex}`;
+                    claims.set(key, {
+                        recipeId: m.content.recipeId,
+                        ingredientIndex: m.content.ingredientIndex,
+                        claimer: m.sender,
+                        claimerName: m.senderDisplayName
+                    });
+                }
+            }
+
+            return claims;
+        }
+
+        // Main render function
+        function render() {
+            const content = document.getElementById('content');
+            const recipes = getRecipes(currentState.messages);
+            const claims = getClaims(currentState.messages);
+
+            if (currentState.selectedRecipe) {
+                const recipe = recipes.find(r => r.id === currentState.selectedRecipe);
+                if (recipe) {
+                    content.innerHTML = renderRecipeDetail(recipe, claims);
+                } else {
+                    currentState.selectedRecipe = null;
+                    render();
+                }
+            } else if (currentState.currentView === 'shopping') {
+                content.innerHTML = renderShoppingList(recipes, claims);
+            } else {
+                content.innerHTML = renderRecipesList(recipes);
+            }
+        }
+
+        // Render recipes list view
+        function renderRecipesList(recipes) {
+            const viewToggle = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <div class="view-toggle">
+                        <button class="active" onclick="switchView('recipes')">📖 Recipes</button>
+                        <button onclick="switchView('shopping')">🛒 Shopping List</button>
+                    </div>
+                    <button class="btn" onclick="openAddRecipeModal()">+ Add Recipe</button>
+                </div>
+            `;
+
+            if (recipes.length === 0) {
+                return viewToggle + `
+                    <div class="empty-state">
+                        <h2>No recipes yet</h2>
+                        <p>Start planning meals together by adding your first recipe!</p>
+                        <button class="btn" onclick="openAddRecipeModal()">+ Add Recipe</button>
+                    </div>
+                `;
+            }
+
+            const recipesHtml = recipes.map(recipe => `
+                <div class="recipe-card" onclick="selectRecipe('${recipe.id}')">
+                    <div class="recipe-header">
+                        <div class="recipe-name">${escapeHtml(recipe.name)}</div>
+                        <div class="recipe-meta">
+                            <span>by ${escapeHtml(recipe.author)}</span>
+                        </div>
+                    </div>
+                    ${recipe.description ? `<div class="recipe-description">${escapeHtml(recipe.description)}</div>` : ''}
+                    <div class="recipe-stats">
+                        <div class="stat">
+                            <span>🍽️</span>
+                            <span>${recipe.servings} servings</span>
+                        </div>
+                        <div class="stat">
+                            <span>📝</span>
+                            <span>${recipe.ingredients.length} ingredients</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            return viewToggle + `<div class="recipes-grid">${recipesHtml}</div>`;
+        }
+
+        // Render recipe detail view
+        function renderRecipeDetail(recipe, claims) {
+            const ingredientsHtml = recipe.ingredients.map((ing, idx) => {
+                const claimKey = `${recipe.id}-${idx}`;
+                const claim = claims.get(claimKey);
+
+                return `
+                    <li>
+                        <div class="ingredient-content">
+                            <div class="ingredient-name">${escapeHtml(ing.name)}</div>
+                            <div class="ingredient-amount">${escapeHtml(ing.amount)}</div>
+                            ${claim ? `<div class="ingredient-claimer">✓ ${escapeHtml(claim.claimerName)}</div>` : ''}
+                        </div>
+                        <button class="btn btn-small claim-btn ${claim ? 'claimed' : ''}" onclick="toggleClaim('${recipe.id}', ${idx}, ${claim ? 'true' : 'false'})">
+                            ${claim ? 'Claimed' : 'Claim'}
+                        </button>
+                    </li>
+                `;
+            }).join('');
+
+            return `
+                <button class="back-btn" onclick="backToList()">← Back to recipes</button>
+                <div class="recipe-detail">
+                    <div class="recipe-detail-header">
+                        <div>
+                            <h2 style="font-size: 28px; margin-bottom: 8px;">${escapeHtml(recipe.name)}</h2>
+                            <div class="recipe-meta">
+                                <span>by ${escapeHtml(recipe.author)}</span>
+                                <span>•</span>
+                                <span>🍽️ ${recipe.servings} servings</span>
+                            </div>
+                        </div>
+                    </div>
+                    ${recipe.description ? `<div class="recipe-description">${escapeHtml(recipe.description)}</div>` : ''}
+
+                    <div class="ingredients-section">
+                        <h3 class="section-title">Ingredients</h3>
+                        <ul class="ingredient-checklist">
+                            ${ingredientsHtml}
+                        </ul>
+                    </div>
+
+                    ${recipe.instructions ? `
+                        <div class="instructions-section">
+                            <h3 class="section-title">Instructions</h3>
+                            <div class="instructions-text">${escapeHtml(recipe.instructions)}</div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        // Render shopping list view
+        function renderShoppingList(recipes, claims) {
+            const viewToggle = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <div class="view-toggle">
+                        <button onclick="switchView('recipes')">📖 Recipes</button>
+                        <button class="active" onclick="switchView('shopping')">🛒 Shopping List</button>
+                    </div>
+                    <button class="btn" onclick="openAddRecipeModal()">+ Add Recipe</button>
+                </div>
+            `;
+
+            if (recipes.length === 0) {
+                return viewToggle + `
+                    <div class="empty-state">
+                        <h2>No ingredients yet</h2>
+                        <p>Add some recipes to see your shopping list!</p>
+                    </div>
+                `;
+            }
+
+            const allIngredients = [];
+            recipes.forEach(recipe => {
+                recipe.ingredients.forEach((ing, idx) => {
+                    const claimKey = `${recipe.id}-${idx}`;
+                    const claim = claims.get(claimKey);
+                    allIngredients.push({
+                        ...ing,
+                        recipeName: recipe.name,
+                        recipeId: recipe.id,
+                        ingredientIndex: idx,
+                        claim
+                    });
+                });
+            });
+
+            // Group by claimed/unclaimed
+            const unclaimed = allIngredients.filter(i => !i.claim);
+            const claimed = allIngredients.filter(i => i.claim);
+
+            const renderItems = (items, title) => {
+                if (items.length === 0) return '';
+                return `
+                    <div class="shopping-list">
+                        <h2>${title}</h2>
+                        ${items.map(item => `
+                            <div class="shopping-item">
+                                <div class="shopping-item-info">
+                                    <div class="shopping-item-name">${escapeHtml(item.name)} - ${escapeHtml(item.amount)}</div>
+                                    <div class="shopping-item-recipe">
+                                        from ${escapeHtml(item.recipeName)}
+                                        ${item.claim ? ` • ${escapeHtml(item.claim.claimerName)}` : ''}
+                                    </div>
+                                </div>
+                                <button class="btn btn-small claim-btn ${item.claim ? 'claimed' : ''}" onclick="toggleClaim('${item.recipeId}', ${item.ingredientIndex}, ${item.claim ? 'true' : 'false'})">
+                                    ${item.claim ? 'Claimed' : 'Claim'}
+                                </button>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            };
+
+            return viewToggle +
+                renderItems(unclaimed, '🛒 Need to Buy') +
+                renderItems(claimed, '✓ Claimed');
+        }
+
+        // Modal functions
+        function openAddRecipeModal() {
+            document.getElementById('addRecipeModal').classList.add('active');
+            document.getElementById('addRecipeForm').reset();
+            document.getElementById('ingredientsList').innerHTML = '';
+            // Add 3 initial ingredient fields
+            addIngredientField();
+            addIngredientField();
+            addIngredientField();
+        }
+
+        function closeAddRecipeModal() {
+            document.getElementById('addRecipeModal').classList.remove('active');
+        }
+
+        function addIngredientField() {
+            const list = document.getElementById('ingredientsList');
+            const index = list.children.length;
+            const div = document.createElement('div');
+            div.className = 'ingredient-item';
+            div.innerHTML = `
+                <input type="text" placeholder="Ingredient name" data-ing-name="${index}">
+                <input type="text" placeholder="Amount" data-ing-amount="${index}">
+                <button type="button" class="btn btn-danger btn-small" onclick="this.parentElement.remove()">×</button>
+            `;
+            list.appendChild(div);
+        }
+
+        function handleAddRecipe(event) {
+            event.preventDefault();
+
+            const name = document.getElementById('recipeName').value.trim();
+            const description = document.getElementById('recipeDescription').value.trim();
+            const servings = parseInt(document.getElementById('recipeServings').value) || 4;
+            const instructions = document.getElementById('recipeInstructions').value.trim();
+
+            // Collect ingredients
+            const ingredients = [];
+            const nameInputs = document.querySelectorAll('[data-ing-name]');
+            nameInputs.forEach((nameInput, idx) => {
+                const amountInput = document.querySelector(`[data-ing-amount="${idx}"]`);
+                const ingName = nameInput.value.trim();
+                const ingAmount = amountInput.value.trim();
+                if (ingName && ingAmount) {
+                    ingredients.push({ name: ingName, amount: ingAmount });
+                }
+            });
+
+            if (ingredients.length === 0) {
+                alert('Please add at least one ingredient');
+                return;
+            }
+
+            // Send event to Matrix
+            parent.postMessage({
+                type: "ACTION_SEND_EVENT",
+                eventType: "io.element.recipe.item",
+                content: {
+                    name,
+                    description,
+                    servings,
+                    ingredients,
+                    instructions
+                }
+            }, "*");
+
+            closeAddRecipeModal();
+        }
+
+        // Navigation functions
+        function selectRecipe(recipeId) {
+            currentState.selectedRecipe = recipeId;
+            render();
+        }
+
+        function backToList() {
+            currentState.selectedRecipe = null;
+            render();
+        }
+
+        function switchView(view) {
+            currentState.currentView = view;
+            currentState.selectedRecipe = null;
+            render();
+        }
+
+        // Toggle ingredient claim
+        function toggleClaim(recipeId, ingredientIndex, isClaimed) {
+            if (!isClaimed) {
+                parent.postMessage({
+                    type: "ACTION_SEND_EVENT",
+                    eventType: "io.element.recipe.claim",
+                    content: {
+                        recipeId,
+                        ingredientIndex
+                    }
+                }, "*");
+            }
+        }
+
+        // Utility functions
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initial render
+        render();
+    </script>
+</body>
+</html>

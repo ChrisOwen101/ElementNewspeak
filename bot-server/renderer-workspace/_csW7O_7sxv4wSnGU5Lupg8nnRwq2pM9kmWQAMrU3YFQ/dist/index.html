@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Text Adventure: James Moulding</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #15191E;
+            color: #F4F4F5;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        #app {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .container {
+            background: #1E2329;
+            border: 1px solid #373C43;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            color: #F4F4F5;
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 24px;
+            padding: 16px;
+            background: #15191E;
+            border-radius: 6px;
+            border: 1px solid #373C43;
+            flex-wrap: wrap;
+        }
+
+        .status-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 120px;
+        }
+
+        .status-label {
+            font-size: 12px;
+            color: #8B92A3;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #00D900;
+        }
+
+        .hp-bar {
+            width: 100%;
+            height: 6px;
+            background: #373C43;
+            border-radius: 3px;
+            margin-top: 4px;
+            overflow: hidden;
+        }
+
+        .hp-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00D900, #00AA00);
+            transition: width 0.3s ease;
+        }
+
+        .game-log {
+            background: #15191E;
+            border: 1px solid #373C43;
+            border-radius: 6px;
+            padding: 16px;
+            height: 350px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .game-log::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .game-log::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .game-log::-webkit-scrollbar-thumb {
+            background: #373C43;
+            border-radius: 4px;
+        }
+
+        .game-log::-webkit-scrollbar-thumb:hover {
+            background: #50555F;
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 4px 0;
+        }
+
+        .log-narrator {
+            color: #00D900;
+        }
+
+        .log-player {
+            color: #5B9EFF;
+            font-weight: 500;
+        }
+
+        .log-enemy {
+            color: #FF6B6B;
+            font-weight: 500;
+        }
+
+        .log-action {
+            color: #FFD700;
+        }
+
+        .log-damage {
+            color: #FF8C42;
+            font-weight: 600;
+        }
+
+        .actions-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .action-btn {
+            padding: 12px 16px;
+            background: #373C43;
+            border: 1px solid #50555F;
+            border-radius: 6px;
+            color: #F4F4F5;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            text-align: left;
+        }
+
+        .action-btn:hover:not(:disabled) {
+            background: #50555F;
+            border-color: #6C7280;
+            transform: translateY(-2px);
+        }
+
+        .action-btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .action-btn .action-name {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .action-btn .action-desc {
+            display: block;
+            font-size: 12px;
+            color: #8B92A3;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .text-input {
+            flex: 1;
+            padding: 12px;
+            background: #373C43;
+            border: 1px solid #50555F;
+            border-radius: 6px;
+            color: #F4F4F5;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .text-input:focus {
+            outline: none;
+            border-color: #00D900;
+            box-shadow: 0 0 0 2px rgba(0, 217, 0, 0.1);
+        }
+
+        .send-btn {
+            padding: 12px 24px;
+            background: #00D900;
+            border: none;
+            border-radius: 6px;
+            color: #15191E;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .send-btn:hover:not(:disabled) {
+            background: #00AA00;
+            transform: translateY(-2px);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .game-over {
+            background: #2a1f1f;
+            border: 2px solid #FF6B6B;
+            border-radius: 8px;
+            padding: 24px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .game-over h2 {
+            font-size: 24px;
+            color: #FF6B6B;
+            margin-bottom: 12px;
+        }
+
+        .game-over p {
+            color: #F4F4F5;
+            margin-bottom: 16px;
+        }
+
+        .reset-btn {
+            padding: 12px 32px;
+            background: #00D900;
+            border: none;
+            border-radius: 6px;
+            color: #15191E;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .reset-btn:hover {
+            background: #00AA00;
+            transform: translateY(-2px);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #8B92A3;
+        }
+
+        .empty-state h2 {
+            color: #F4F4F5;
+            margin-bottom: 12px;
+        }
+
+        @media (max-width: 600px) {
+            .actions-container {
+                grid-template-columns: 1fr;
+            }
+
+            .status-bar {
+                gap: 15px;
+            }
+
+            .input-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+
+    <script>
+        // Game state
+        let gameState = null;
+        let messages = [];
+        let roomState = null;
+
+        // Initialize game
+        function initGame() {
+            gameState = {
+                playerName: 'Adventurer',
+                playerHP: 100,
+                playerMaxHP: 100,
+                playerMana: 50,
+                playerMaxMana: 50,
+
+                enemyName: 'James Moulding',
+                enemyHP: 80,
+                enemyMaxHP: 80,
+                enemyMana: 40,
+                enemyMaxMana: 40,
+
+                turn: 'player',
+                gameActive: true,
+                logEntries: [
+                    { type: 'narrator', text: 'You encounter James Moulding in a mystical tavern...' },
+                    { type: 'narrator', text: '"Prepare yourself!" says James, drawing a glowing staff.' },
+                    { type: 'narrator', text: 'Battle is about to begin!' }
+                ]
+            };
+        }
+
+        // Get game events from messages
+        function loadGameStateFromMessages() {
+            const gameEvents = messages.filter(m =>
+                m.type && m.type.startsWith('io.element.textadventure.')
+            );
+
+            if (gameEvents.length === 0) {
+                initGame();
+                return;
+            }
+
+            // Process events in order
+            gameState = {
+                playerName: 'Adventurer',
+                playerHP: 100,
+                playerMaxHP: 100,
+                playerMana: 50,
+                playerMaxMana: 50,
+
+                enemyName: 'James Moulding',
+                enemyHP: 80,
+                enemyMaxHP: 80,
+                enemyMana: 40,
+                enemyMaxMana: 40,
+
+                turn: 'player',
+                gameActive: true,
+                logEntries: [
+                    { type: 'narrator', text: 'You encounter James Moulding in a mystical tavern...' },
+                    { type: 'narrator', text: '"Prepare yourself!" says James, drawing a glowing staff.' },
+                    { type: 'narrator', text: 'Battle is about to begin!' }
+                ]
+            };
+
+            for (const event of gameEvents) {
+                if (event.type === 'io.element.textadventure.action') {
+                    processGameAction(event.content);
+                }
+            }
+        }
+
+        function processGameAction(content) {
+            const { actor, action, target } = content;
+
+            if (!gameState.gameActive) return;
+
+            let logEntry = {};
+            let damage = 0;
+
+            if (actor === 'player') {
+                switch (action) {
+                    case 'attack':
+                        damage = Math.floor(Math.random() * 20) + 10;
+                        gameState.enemyHP = Math.max(0, gameState.enemyHP - damage);
+                        logEntry = {
+                            type: 'action',
+                            text: `🗡️ You attack James with a powerful strike! (${damage} damage)`
+                        };
+                        break;
+                    case 'fireball':
+                        if (gameState.playerMana >= 20) {
+                            damage = Math.floor(Math.random() * 30) + 20;
+                            gameState.enemyHP = Math.max(0, gameState.enemyHP - damage);
+                            gameState.playerMana -= 20;
+                            logEntry = {
+                                type: 'action',
+                                text: `🔥 You cast Fireball! (${damage} damage, -20 mana)`
+                            };
+                        } else {
+                            logEntry = {
+                                type: 'action',
+                                text: `❌ Not enough mana! You need 20 mana, but only have ${gameState.playerMana}.`
+                            };
+                        }
+                        break;
+                    case 'heal':
+                        if (gameState.playerMana >= 15) {
+                            const healed = Math.min(30, gameState.playerMaxHP - gameState.playerHP);
+                            gameState.playerHP += healed;
+                            gameState.playerMana -= 15;
+                            logEntry = {
+                                type: 'action',
+                                text: `💚 You cast Heal! (+${healed} HP, -15 mana)`
+                            };
+                        } else {
+                            logEntry = {
+                                type: 'action',
+                                text: `❌ Not enough mana! You need 15 mana, but only have ${gameState.playerMana}.`
+                            };
+                        }
+                        break;
+                    case 'defend':
+                        logEntry = {
+                            type: 'action',
+                            text: `🛡️ You take a defensive stance!`
+                        };
+                        break;
+                }
+
+                gameState.logEntries.push({ type: 'player', text: logEntry.text });
+                gameState.turn = 'enemy';
+
+                // Check win condition
+                if (gameState.enemyHP <= 0) {
+                    gameState.gameActive = false;
+                    gameState.logEntries.push({
+                        type: 'narrator',
+                        text: 'Victory! James has been defeated! You are the champion!'
+                    });
+                }
+
+            } else if (actor === 'enemy') {
+                let enemyAction = action;
+
+                switch (enemyAction) {
+                    case 'attack':
+                        damage = Math.floor(Math.random() * 15) + 8;
+                        gameState.playerHP = Math.max(0, gameState.playerHP - damage);
+                        logEntry = {
+                            type: 'action',
+                            text: `⚡ James attacks you! (${damage} damage)`
+                        };
+                        break;
+                    case 'fireball':
+                        damage = Math.floor(Math.random() * 25) + 15;
+                        gameState.playerHP = Math.max(0, gameState.playerHP - damage);
+                        gameState.enemyMana -= 20;
+                        logEntry = {
+                            type: 'action',
+                            text: `🔥 James casts Fireball at you! (${damage} damage)`
+                        };
+                        break;
+                    case 'heal':
+                        const healed = Math.min(25, gameState.enemyMaxHP - gameState.enemyHP);
+                        gameState.enemyHP += healed;
+                        gameState.enemyMana -= 15;
+                        logEntry = {
+                            type: 'action',
+                            text: `💙 James heals himself! (+${healed} HP)`
+                        };
+                        break;
+                }
+
+                gameState.logEntries.push({ type: 'enemy', text: logEntry.text });
+                gameState.turn = 'player';
+
+                // Check lose condition
+                if (gameState.playerHP <= 0) {
+                    gameState.gameActive = false;
+                    gameState.logEntries.push({
+                        type: 'narrator',
+                        text: 'Defeat! James has bested you. Try again!'
+                    });
+                }
+            }
+
+            // Regenerate mana
+            gameState.playerMana = Math.min(gameState.playerMaxMana, gameState.playerMana + 5);
+            gameState.enemyMana = Math.min(gameState.enemyMaxMana, gameState.enemyMana + 3);
+        }
+
+        function enemyTurn() {
+            if (!gameState.gameActive || gameState.turn !== 'enemy') return;
+
+            // Simple AI
+            let enemyAction = 'attack';
+
+            if (gameState.enemyHP < 30 && gameState.enemyMana >= 15) {
+                enemyAction = 'heal';
+            } else if (gameState.enemyMana >= 20 && Math.random() > 0.5) {
+                enemyAction = 'fireball';
+            }
+
+            const actionEvent = {
+                type: 'io.element.textadventure.action',
+                actor: 'enemy',
+                action: enemyAction
+            };
+
+            parent.postMessage({
+                type: 'ACTION_SEND_EVENT',
+                eventType: 'io.element.textadventure.action',
+                content: actionEvent
+            }, '*');
+        }
+
+        function handlePlayerAction(action) {
+            if (!gameState.gameActive || gameState.turn !== 'player') return;
+
+            const actionEvent = {
+                type: 'io.element.textadventure.action',
+                actor: 'player',
+                action: action
+            };
+
+            parent.postMessage({
+                type: 'ACTION_SEND_EVENT',
+                eventType: 'io.element.textadventure.action',
+                content: actionEvent
+            }, '*');
+
+            // Schedule enemy turn after a short delay
+            setTimeout(enemyTurn, 1500);
+        }
+
+        function handleCustomAction() {
+            const input = document.getElementById('customInput');
+            if (!input.value.trim()) return;
+
+            const customText = input.value.trim();
+            input.value = '';
+
+            gameState.logEntries.push({
+                type: 'player',
+                text: `"${customText}"`
+            });
+
+            // Random response from James
+            const responses = [
+                'Interesting choice...',
+                'I did not expect that!',
+                'Hah! Is that all?',
+                'Your tactics intrigue me.',
+                'You dare?',
+                'How amusing.'
+            ];
+            const response = responses[Math.floor(Math.random() * responses.length)];
+            gameState.logEntries.push({
+                type: 'enemy',
+                text: `"${response}"`
+            });
+
+            render();
+        }
+
+        function resetGame() {
+            parent.postMessage({
+                type: 'ACTION_SEND_EVENT',
+                eventType: 'io.element.textadventure.reset',
+                content: { reset: true }
+            }, '*');
+        }
+
+        function render() {
+            const app = document.getElementById('app');
+
+            if (!gameState) {
+                app.innerHTML = '<div class="container empty-state"><h2>Initializing game...</h2></div>';
+                return;
+            }
+
+            const playerHPPercent = (gameState.playerHP / gameState.playerMaxHP) * 100;
+            const enemyHPPercent = (gameState.enemyHP / gameState.enemyMaxHP) * 100;
+            const playerManaPercent = (gameState.playerMana / gameState.playerMaxMana) * 100;
+            const enemyManaPercent = (gameState.enemyMana / gameState.enemyMaxMana) * 100;
+
+            const logHTML = gameState.logEntries.map(entry => {
+                const className = `log-${entry.type}`;
+                return `<div class="log-entry ${className}">${escapeHTML(entry.text)}</div>`;
+            }).join('');
+
+            let actionsHTML = '';
+            if (gameState.gameActive && gameState.turn === 'player') {
+                actionsHTML = `
+                    <div class="actions-container">
+                        <button class="action-btn" onclick="handlePlayerAction('attack')">
+                            <span class="action-name">⚔️ Attack</span>
+                            <span class="action-desc">10-30 damage</span>
+                        </button>
+                        <button class="action-btn" onclick="handlePlayerAction('fireball')">
+                            <span class="action-name">🔥 Fireball</span>
+                            <span class="action-desc">20-50 damage, -20 mana</span>
+                        </button>
+                        <button class="action-btn" onclick="handlePlayerAction('heal')">
+                            <span class="action-name">💚 Heal</span>
+                            <span class="action-desc">+30 HP, -15 mana</span>
+                        </button>
+                        <button class="action-btn" onclick="handlePlayerAction('defend')">
+                            <span class="action-name">🛡️ Defend</span>
+                            <span class="action-desc">Brace for impact</span>
+                        </button>
+                    </div>
+                    <div class="input-group">
+                        <input type="text" id="customInput" class="text-input" placeholder="Or type a custom action..." />
+                        <button class="send-btn" onclick="handleCustomAction()">Send</button>
+                    </div>
+                `;
+            } else if (!gameState.gameActive) {
+                const isPlayerWin = gameState.enemyHP <= 0;
+                actionsHTML = `
+                    <div class="game-over">
+                        <h2>${isPlayerWin ? '🎉 YOU WIN!' : '💀 GAME OVER'}</h2>
+                        <p>${isPlayerWin ? 'You have defeated James Moulding!' : 'You have been defeated by James Moulding.'}</p>
+                        <button class="reset-btn" onclick="resetGame()">Play Again</button>
+                    </div>
+                `;
+            } else {
+                actionsHTML = '<p style="text-align: center; color: #8B92A3;">Waiting for James to act...</p>';
+            }
+
+            const html = `
+                <div class="container">
+                    <h1>⚔️ Text Adventure Battle</h1>
+
+                    <div class="status-bar">
+                        <div class="status-item">
+                            <span class="status-label">Your HP</span>
+                            <span class="status-value">${gameState.playerHP}/${gameState.playerMaxHP}</span>
+                            <div class="hp-bar">
+                                <div class="hp-fill" style="width: ${playerHPPercent}%"></div>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Your Mana</span>
+                            <span class="status-value">${gameState.playerMana}/${gameState.playerMaxMana}</span>
+                            <div class="hp-bar">
+                                <div class="hp-fill" style="width: ${playerManaPercent}%; background: linear-gradient(90deg, #5B9EFF, #0066FF);"></div>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">James' HP</span>
+                            <span class="status-value">${gameState.enemyHP}/${gameState.enemyMaxHP}</span>
+                            <div class="hp-bar">
+                                <div class="hp-fill" style="width: ${enemyHPPercent}%; background: linear-gradient(90deg, #FF6B6B, #CC0000);"></div>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">James' Mana</span>
+                            <span class="status-value">${gameState.enemyMana}/${gameState.enemyMaxMana}</span>
+                            <div class="hp-bar">
+                                <div class="hp-fill" style="width: ${enemyManaPercent}%; background: linear-gradient(90deg, #FF9900, #FF6600);"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="game-log" id="gameLog">${logHTML}</div>
+
+                    ${actionsHTML}
+                </div>
+            `;
+
+            app.innerHTML = html;
+
+            // Scroll to bottom of log
+            setTimeout(() => {
+                const gameLog = document.getElementById('gameLog');
+                if (gameLog) {
+                    gameLog.scrollTop = gameLog.scrollHeight;
+                }
+            }, 0);
+        }
+
+        function escapeHTML(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Listen for room data from parent
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'ROOM_DATA') {
+                messages = event.data.messages || [];
+                roomState = event.data.roomState || {};
+                loadGameStateFromMessages();
+                render();
+            }
+        });
+
+        // Initial render
+        initGame();
+        render();
+    </script>
+</body>
+</html>

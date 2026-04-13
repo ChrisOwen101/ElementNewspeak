@@ -84,6 +84,7 @@
         "mention": "Mention",
         "minimise": "Minimise",
         "new_room": "New room",
+        "new_tool": "New tool",
         "new_video_room": "New video room",
         "next": "Next",
         "no": "No",
@@ -746,6 +747,11 @@
         "title": "Decline invitation"
     },
     "desktop_default_device_name": "%(brand)s Desktop: %(platformName)s",
+    "dynamic_room": {
+        "create_dialog_title": "Create a new tool",
+        "create_dialog_description": "Give your tool a name. It will be created as a customisable room where you can describe what it should look like.",
+        "create_dialog_placeholder": "e.g. kanban-board, task-tracker…"
+    },
     "devtools": {
         "active_widgets": "Active Widgets",
         "category_other": "Other",

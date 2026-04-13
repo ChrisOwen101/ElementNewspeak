@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pong Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #15191E;
+            color: #F4F4F5;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        #app {
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .pong-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 20px;
+            border-radius: 8px;
+            background: #1E232B;
+            border: 1px solid #3C4149;
+        }
+
+        .pong-header {
+            text-align: center;
+        }
+
+        .pong-header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .pong-header p {
+            color: #A0A4A8;
+            font-size: 14px;
+        }
+
+        .game-canvas-wrapper {
+            display: flex;
+            justify-content: center;
+            background: #0D1117;
+            border-radius: 6px;
+            padding: 10px;
+            border: 2px solid #3C4149;
+        }
+
+        #pongCanvas {
+            display: block;
+            background: #000;
+            border-radius: 4px;
+            max-width: 100%;
+            height: auto;
+            cursor: none;
+        }
+
+        .game-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            background: #0DBF60;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        button:hover {
+            background: #0ca852;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(13, 191, 96, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .game-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            padding: 15px;
+            background: #262D35;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .score-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .score-label {
+            font-size: 12px;
+            color: #A0A4A8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .score-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #0DBF60;
+        }
+
+        .game-status {
+            text-align: center;
+            padding: 10px;
+            background: #262D35;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .game-status.winner {
+            background: rgba(13, 191, 96, 0.1);
+            color: #0DBF60;
+            font-weight: 600;
+        }
+
+        .instructions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+            padding: 15px;
+            background: #262D35;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #A0A4A8;
+        }
+
+        .instruction-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .instruction-key {
+            color: #0DBF60;
+            font-weight: 600;
+        }
+
+        @media (max-width: 600px) {
+            .pong-container {
+                padding: 15px;
+            }
+
+            .pong-header h1 {
+                font-size: 24px;
+            }
+
+            .game-info {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            button {
+                padding: 8px 16px;
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+
+    <script>
+        // Game state
+        let gameState = {
+            ballX: 300,
+            ballY: 200,
+            ballSpeedX: 5,
+            ballSpeedY: 5,
+            ballRadius: 5,
+
+            paddle1Y: 150,
+            paddle2Y: 150,
+            paddleHeight: 80,
+            paddleWidth: 10,
+            paddleSpeed: 6,
+
+            score1: 0,
+            score2: 0,
+
+            isRunning: false,
+            gameWidth: 600,
+            gameHeight: 400,
+        };
+
+        const canvas = document.createElement('canvas');
+        let animationId = null;
+
+        function initGame() {
+            gameState.ballX = gameState.gameWidth / 2;
+            gameState.ballY = gameState.gameHeight / 2;
+            gameState.ballSpeedX = (Math.random() > 0.5 ? 1 : -1) * 5;
+            gameState.ballSpeedY = (Math.random() - 0.5) * 6;
+            gameState.paddle1Y = gameState.gameHeight / 2 - gameState.paddleHeight / 2;
+            gameState.paddle2Y = gameState.gameHeight / 2 - gameState.paddleHeight / 2;
+        }
+
+        function resetBall() {
+            gameState.ballX = gameState.gameWidth / 2;
+            gameState.ballY = gameState.gameHeight / 2;
+            gameState.ballSpeedX = (Math.random() > 0.5 ? 1 : -1) * 5;
+            gameState.ballSpeedY = (Math.random() - 0.5) * 6;
+        }
+
+        function updateGame() {
+            if (!gameState.isRunning) return;
+
+            // Move ball
+            gameState.ballX += gameState.ballSpeedX;
+            gameState.ballY += gameState.ballSpeedY;
+
+            // Ball collision with top/bottom walls
+            if (gameState.ballY - gameState.ballRadius < 0 || gameState.ballY + gameState.ballRadius > gameState.gameHeight) {
+                gameState.ballSpeedY = -gameState.ballSpeedY;
+                gameState.ballY = Math.max(gameState.ballRadius, Math.min(gameState.gameHeight - gameState.ballRadius, gameState.ballY));
+            }
+
+            // Ball collision with paddles
+            // Left paddle
+            if (
+                gameState.ballX - gameState.ballRadius < gameState.paddleWidth &&
+                gameState.ballY > gameState.paddle1Y &&
+                gameState.ballY < gameState.paddle1Y + gameState.paddleHeight
+            ) {
+                gameState.ballSpeedX = Math.abs(gameState.ballSpeedX);
+                gameState.ballX = gameState.paddleWidth + gameState.ballRadius;
+                const hitPos = (gameState.ballY - (gameState.paddle1Y + gameState.paddleHeight / 2)) / (gameState.paddleHeight / 2);
+                gameState.ballSpeedY = hitPos * 6;
+            }
+
+            // Right paddle
+            if (
+                gameState.ballX + gameState.ballRadius > gameState.gameWidth - gameState.paddleWidth &&
+                gameState.ballY > gameState.paddle2Y &&
+                gameState.ballY < gameState.paddle2Y + gameState.paddleHeight
+            ) {
+                gameState.ballSpeedX = -Math.abs(gameState.ballSpeedX);
+                gameState.ballX = gameState.gameWidth - gameState.paddleWidth - gameState.ballRadius;
+                const hitPos = (gameState.ballY - (gameState.paddle2Y + gameState.paddleHeight / 2)) / (gameState.paddleHeight / 2);
+                gameState.ballSpeedY = hitPos * 6;
+            }
+
+            // Scoring
+            if (gameState.ballX - gameState.ballRadius < 0) {
+                gameState.score2++;
+                resetBall();
+                saveScore();
+            } else if (gameState.ballX + gameState.ballRadius > gameState.gameWidth) {
+                gameState.score1++;
+                resetBall();
+                saveScore();
+            }
+
+            // AI for right paddle (single player mode)
+            const paddle2Center = gameState.paddle2Y + gameState.paddleHeight / 2;
+            const ballCenter = gameState.ballY;
+            if (Math.abs(paddle2Center - ballCenter) > gameState.paddleSpeed) {
+                if (paddle2Center < ballCenter) {
+                    gameState.paddle2Y += gameState.paddleSpeed;
+                } else {
+                    gameState.paddle2Y -= gameState.paddleSpeed;
+                }
+            }
+
+            gameState.paddle2Y = Math.max(0, Math.min(gameState.gameHeight - gameState.paddleHeight, gameState.paddle2Y));
+        }
+
+        function drawGame() {
+            const ctx = canvas.getContext('2d');
+
+            // Clear canvas
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, gameState.gameWidth, gameState.gameHeight);
+
+            // Draw center line
+            ctx.strokeStyle = '#444';
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(gameState.gameWidth / 2, 0);
+            ctx.lineTo(gameState.gameWidth / 2, gameState.gameHeight);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Draw paddles
+            ctx.fillStyle = '#0DBF60';
+            ctx.fillRect(0, gameState.paddle1Y, gameState.paddleWidth, gameState.paddleHeight);
+            ctx.fillRect(gameState.gameWidth - gameState.paddleWidth, gameState.paddle2Y, gameState.paddleWidth, gameState.paddleHeight);
+
+            // Draw ball
+            ctx.beginPath();
+            ctx.arc(gameState.ballX, gameState.ballY, gameState.ballRadius, 0, Math.PI * 2);
+            ctx.fillStyle = '#0DBF60';
+            ctx.fill();
+
+            // Draw scores
+            ctx.fillStyle = '#0DBF60';
+            ctx.font = 'bold 30px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(gameState.score1, gameState.gameWidth / 4, 40);
+            ctx.fillText(gameState.score2, (gameState.gameWidth * 3) / 4, 40);
+        }
+
+        function gameLoop() {
+            updateGame();
+            drawGame();
+            animationId = requestAnimationFrame(gameLoop);
+        }
+
+        function startGame() {
+            gameState.isRunning = true;
+            if (!animationId) {
+                gameLoop();
+            }
+            render();
+        }
+
+        function pauseGame() {
+            gameState.isRunning = false;
+            render();
+        }
+
+        function resetGame() {
+            gameState.isRunning = false;
+            gameState.score1 = 0;
+            gameState.score2 = 0;
+            initGame();
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            drawGame();
+            render();
+        }
+
+        function saveScore() {
+            // Send score event to Matrix room
+            parent.postMessage({
+                type: "ACTION_SEND_EVENT",
+                eventType: "io.element.pong.score",
+                content: {
+                    player1: gameState.score1,
+                    player2: gameState.score2,
+                    timestamp: Date.now()
+                }
+            }, "*");
+        }
+
+        // Keyboard controls for left paddle
+        const keys = {};
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+            if (e.key === 'w' || e.key === 'W') {
+                gameState.paddle1Y = Math.max(0, gameState.paddle1Y - gameState.paddleSpeed);
+            } else if (e.key === 's' || e.key === 'S') {
+                gameState.paddle1Y = Math.min(gameState.gameHeight - gameState.paddleHeight, gameState.paddle1Y + gameState.paddleSpeed);
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+
+        // Continuous movement
+        setInterval(() => {
+            if (keys['w'] || keys['W']) {
+                gameState.paddle1Y = Math.max(0, gameState.paddle1Y - gameState.paddleSpeed);
+            }
+            if (keys['s'] || keys['S']) {
+                gameState.paddle1Y = Math.min(gameState.gameHeight - gameState.paddleHeight, gameState.paddle1Y + gameState.paddleSpeed);
+            }
+        }, 20);
+
+        // Handle mouse movement for paddle control (mobile/alternative)
+        document.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseY = e.clientY - rect.top;
+            const centerY = gameState.paddle1Y + gameState.paddleHeight / 2;
+            const diff = mouseY - centerY;
+
+            if (Math.abs(diff) > 5) {
+                gameState.paddle1Y = Math.max(0, Math.min(gameState.gameHeight - gameState.paddleHeight, gameState.paddle1Y + diff * 0.1));
+            }
+        });
+
+        function render() {
+            const app = document.getElementById('app');
+            const statusText = gameState.isRunning ? 'Game Running' : 'Game Paused';
+            const statusClass = !gameState.isRunning && gameState.score1 + gameState.score2 > 0 ? 'winner' : '';
+
+            app.innerHTML = `
+                <div class="pong-container">
+                    <div class="pong-header">
+                        <h1>🎮 Pong Game</h1>
+                        <p>Classic arcade pong - play against the AI!</p>
+                    </div>
+
+                    <div class="game-canvas-wrapper">
+                        <canvas id="pongCanvas" width="600" height="400"></canvas>
+                    </div>
+
+                    <div class="game-info">
+                        <div class="score-item">
+                            <span class="score-label">You (Left)</span>
+                            <span class="score-value">${gameState.score1}</span>
+                        </div>
+                        <div class="score-item">
+                            <span class="score-label">AI (Right)</span>
+                            <span class="score-value">${gameState.score2}</span>
+                        </div>
+                    </div>
+
+                    <div class="game-status ${statusClass}">
+                        ${statusText}
+                    </div>
+
+                    <div class="game-controls">
+                        <button onclick="startGame()" ${gameState.isRunning ? 'disabled' : ''}>▶ Start</button>
+                        <button onclick="pauseGame()" ${!gameState.isRunning ? 'disabled' : ''}>⏸ Pause</button>
+                        <button onclick="resetGame()">🔄 Reset</button>
+                    </div>
+
+                    <div class="instructions">
+                        <div class="instruction-item">
+                            <span class="instruction-key">W</span>
+                            <span>Move paddle up</span>
+                        </div>
+                        <div class="instruction-item">
+                            <span class="instruction-key">S</span>
+                            <span>Move paddle down</span>
+                        </div>
+                        <div class="instruction-item">
+                            <span class="instruction-key">Mouse</span>
+                            <span>Alternative control</span>
+                        </div>
+                        <div class="instruction-item">
+                            <span class="instruction-key">Spacebar</span>
+                            <span>Toggle pause</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const canvasElement = document.getElementById('pongCanvas');
+            Object.assign(canvasElement, canvas);
+        }
+
+        // Initialize and render
+        canvas.width = gameState.gameWidth;
+        canvas.height = gameState.gameHeight;
+        initGame();
+        render();
+        drawGame();
+
+        // Spacebar to toggle pause
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                if (gameState.isRunning) {
+                    pauseGame();
+                } else {
+                    startGame();
+                }
+            }
+        });
+
+        // Listen for room updates (Element Web integration)
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'ROOM_DATA') {
+                // Room data received - could update game state from shared scores if needed
+                // For now, local game state is maintained
+            }
+        });
+    </script>
+</body>
+</html>

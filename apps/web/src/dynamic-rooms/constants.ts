@@ -10,23 +10,19 @@ Please see LICENSE files in the repository root for full details.
  * Any room whose name starts with this prefix will use a custom
  * LLM-generated view instead of the standard chat timeline.
  */
-export const DYNAMIC_ROOM_PREFIX = "app-";
+export const DYNAMIC_ROOM_PREFIX = "app-"
 
 /**
  * Custom Matrix state event type that carries the renderer configuration
  * for a dynamic room: bundle URL, schema, and display name.
- * Posted by the bot once Claude Code has generated and bundled the component.
+ * Posted by the client once the generation server returns a bundleUrl.
  */
-export const RENDERER_STATE_EVENT = "io.element.custom_renderer";
+export const RENDERER_STATE_EVENT = "io.element.custom_renderer"
 
 /**
- * Custom Matrix timeline event type sent by the user when they submit
- * a prompt describing what the room should look like.
+ * URL of the generation server's HTTP API endpoint.
+ * Injected at build time via webpack DefinePlugin from the GENERATE_API_URL
+ * environment variable, so the dev server can be reached from other machines
+ * on the network (set automatically by dev.sh).
  */
-export const RENDERER_PROMPT_EVENT = "io.element.renderer_prompt";
-
-/**
- * Custom Matrix state event type posted by the bot to signal the
- * current generation status: pending, ready, or error.
- */
-export const RENDERER_STATUS_EVENT = "io.element.renderer_status";
+export const GENERATE_API_URL = process.env.GENERATE_API_URL ?? "http://localhost:3001/generate"

@@ -5,42 +5,42 @@
  * Please see LICENSE files in the repository root for full details.
  */
 
-import { JoinRule, type MatrixClient, type Room, RoomEvent, RoomType } from "matrix-js-sdk/src/matrix";
+import { JoinRule, type MatrixClient, type Room, RoomEvent, RoomType } from "matrix-js-sdk/src/matrix"
 import {
     BaseViewModel,
     type RoomListHeaderViewSnapshot,
     type RoomListHeaderViewModel as RoomListHeaderViewModelInterface,
     type SortOption,
-} from "@element-hq/web-shared-components";
+} from "@element-hq/web-shared-components"
 
-import defaultDispatcher from "../../dispatcher/dispatcher";
-import PosthogTrackers from "../../PosthogTrackers";
-import { Action } from "../../dispatcher/actions";
-import { getMetaSpaceName, type MetaSpace, UPDATE_HOME_BEHAVIOUR, UPDATE_SELECTED_SPACE } from "../../stores/spaces";
-import { type SpaceStoreClass } from "../../stores/spaces/SpaceStore";
+import defaultDispatcher from "../../dispatcher/dispatcher"
+import PosthogTrackers from "../../PosthogTrackers"
+import { Action } from "../../dispatcher/actions"
+import { getMetaSpaceName, type MetaSpace, UPDATE_HOME_BEHAVIOUR, UPDATE_SELECTED_SPACE } from "../../stores/spaces"
+import { type SpaceStoreClass } from "../../stores/spaces/SpaceStore"
 import {
     shouldShowSpaceSettings,
     showCreateNewRoom,
     showSpaceInvite,
     showSpacePreferences,
     showSpaceSettings,
-} from "../../utils/space";
-import type { ViewRoomPayload } from "../../dispatcher/payloads/ViewRoomPayload";
-import SettingsStore from "../../settings/SettingsStore";
-import RoomListStoreV3 from "../../stores/room-list-v3/RoomListStoreV3";
-import { SortingAlgorithm } from "../../stores/room-list-v3/skip-list/sorters";
-import { SettingLevel } from "../../settings/SettingLevel";
-import { createRoom, hasCreateRoomRights } from "./utils";
+} from "../../utils/space"
+import type { ViewRoomPayload } from "../../dispatcher/payloads/ViewRoomPayload"
+import SettingsStore from "../../settings/SettingsStore"
+import RoomListStoreV3 from "../../stores/room-list-v3/RoomListStoreV3"
+import { SortingAlgorithm } from "../../stores/room-list-v3/skip-list/sorters"
+import { SettingLevel } from "../../settings/SettingLevel"
+import { createRoom, createToolRoom, hasCreateRoomRights } from "./utils"
 
 export interface Props {
     /**
      * The Matrix client instance.
      */
-    matrixClient: MatrixClient;
+    matrixClient: MatrixClient
     /**
      * The space store instance.
      */
-    spaceStore: SpaceStoreClass;
+    spaceStore: SpaceStoreClass
 }
 
 /**
@@ -49,33 +49,32 @@ export interface Props {
  */
 export class RoomListHeaderViewModel
     extends BaseViewModel<RoomListHeaderViewSnapshot, Props>
-    implements RoomListHeaderViewModelInterface
-{
+    implements RoomListHeaderViewModelInterface {
     /**
      * Reference to the currently active space.
      * Used to manage event listeners.
      */
-    private activeSpace: Room | null;
+    private activeSpace: Room | null
 
     public constructor(props: Props) {
-        super(props, getInitialSnapshot(props.spaceStore, props.matrixClient));
+        super(props, getInitialSnapshot(props.spaceStore, props.matrixClient))
 
         // Listen for video rooms feature flag changes
         const settingsFeatureVideoRef = SettingsStore.watchSetting(
             "feature_video_rooms",
             null,
             this.onVideoRoomsFeatureFlagChange,
-        );
-        this.disposables.track(() => SettingsStore.unwatchSetting(settingsFeatureVideoRef));
+        )
+        this.disposables.track(() => SettingsStore.unwatchSetting(settingsFeatureVideoRef))
 
         // Listen for space changes
-        this.disposables.trackListener(props.spaceStore, UPDATE_SELECTED_SPACE, this.onSpaceChange);
-        this.disposables.trackListener(props.spaceStore, UPDATE_HOME_BEHAVIOUR, this.onHomeBehaviourChange);
+        this.disposables.trackListener(props.spaceStore, UPDATE_SELECTED_SPACE, this.onSpaceChange)
+        this.disposables.trackListener(props.spaceStore, UPDATE_HOME_BEHAVIOUR, this.onHomeBehaviourChange)
 
         // Listen for space name changes
-        this.activeSpace = props.spaceStore.activeSpaceRoom;
+        this.activeSpace = props.spaceStore.activeSpaceRoom
         if (this.activeSpace) {
-            this.disposables.trackListener(this.activeSpace, RoomEvent.Name, this.onSpaceNameChange);
+            this.disposables.trackListener(this.activeSpace, RoomEvent.Name, this.onSpaceNameChange)
         }
     }
 
@@ -83,33 +82,33 @@ export class RoomListHeaderViewModel
      * Handles space change events.
      */
     private readonly onSpaceChange = (): void => {
-        const activeSpace = this.props.spaceStore.activeSpaceRoom;
+        const activeSpace = this.props.spaceStore.activeSpaceRoom
 
-        this.activeSpace?.off(RoomEvent.Name, this.onSpaceNameChange);
-        this.activeSpace = activeSpace;
+        this.activeSpace?.off(RoomEvent.Name, this.onSpaceNameChange)
+        this.activeSpace = activeSpace
 
         // Add new room listener if needed
         if (this.activeSpace) {
-            this.disposables.trackListener(this.activeSpace, RoomEvent.Name, this.onSpaceNameChange);
+            this.disposables.trackListener(this.activeSpace, RoomEvent.Name, this.onSpaceNameChange)
         }
 
         this.snapshot.merge({
             ...computeHeaderSpaceState(this.props.spaceStore, this.props.matrixClient),
-        });
+        })
     };
 
     /**
      * Handles home behaviour change events.
      */
     private readonly onHomeBehaviourChange = (): void => {
-        this.snapshot.merge({ title: getHeaderTitle(this.props.spaceStore) });
+        this.snapshot.merge({ title: getHeaderTitle(this.props.spaceStore) })
     };
 
     /**
      * Handles space name change events.
      */
     private onSpaceNameChange = (): void => {
-        this.snapshot.merge({ title: getHeaderTitle(this.props.spaceStore) });
+        this.snapshot.merge({ title: getHeaderTitle(this.props.spaceStore) })
     };
 
     /**
@@ -118,86 +117,90 @@ export class RoomListHeaderViewModel
     private readonly onVideoRoomsFeatureFlagChange = (): void => {
         this.snapshot.merge({
             canCreateVideoRoom: getCanCreateVideoRoom(this.snapshot.current.canCreateRoom),
-        });
+        })
     };
 
     public createChatRoom = (e: Event): void => {
-        defaultDispatcher.fire(Action.CreateChat);
-        PosthogTrackers.trackInteraction("WebRoomListHeaderPlusMenuCreateChatItem", e);
+        defaultDispatcher.fire(Action.CreateChat)
+        PosthogTrackers.trackInteraction("WebRoomListHeaderPlusMenuCreateChatItem", e)
     };
 
     public createRoom = (e: Event): void => {
-        createRoom(this.activeSpace);
-        PosthogTrackers.trackInteraction("WebRoomListHeaderPlusMenuCreateRoomItem", e);
+        createRoom(this.activeSpace)
+        PosthogTrackers.trackInteraction("WebRoomListHeaderPlusMenuCreateRoomItem", e)
     };
 
     public createVideoRoom = (): void => {
         const type = SettingsStore.getValue("feature_element_call_video_rooms")
             ? RoomType.UnstableCall
-            : RoomType.ElementVideo;
+            : RoomType.ElementVideo
         if (this.activeSpace) {
-            showCreateNewRoom(this.activeSpace, type);
+            showCreateNewRoom(this.activeSpace, type)
         } else {
             defaultDispatcher.dispatch({
                 action: Action.CreateRoom,
                 type,
-            });
+            })
         }
     };
 
+    public createToolRoom = (): void => {
+        createToolRoom(this.props.matrixClient, this.activeSpace)
+    };
+
     public openSpaceHome = (): void => {
-        if (!this.activeSpace) return;
+        if (!this.activeSpace) return
         defaultDispatcher.dispatch<ViewRoomPayload>({
             action: Action.ViewRoom,
             room_id: this.activeSpace.roomId,
             metricsTrigger: undefined,
-        });
+        })
     };
 
     public inviteInSpace = (): void => {
-        if (!this.activeSpace) return;
-        showSpaceInvite(this.activeSpace);
+        if (!this.activeSpace) return
+        showSpaceInvite(this.activeSpace)
     };
 
     public openSpacePreferences = (): void => {
-        if (!this.activeSpace) return;
-        showSpacePreferences(this.activeSpace);
+        if (!this.activeSpace) return
+        showSpacePreferences(this.activeSpace)
     };
 
     public openSpaceSettings = (): void => {
-        if (!this.activeSpace) return;
-        showSpaceSettings(this.activeSpace);
+        if (!this.activeSpace) return
+        showSpaceSettings(this.activeSpace)
     };
 
     public sort = (option: SortOption): void => {
-        const oldSortingAlgorithm = RoomListStoreV3.instance.activeSortAlgorithm;
-        let newSortingAlgorithm: SortingAlgorithm;
+        const oldSortingAlgorithm = RoomListStoreV3.instance.activeSortAlgorithm
+        let newSortingAlgorithm: SortingAlgorithm
         switch (option) {
             case "alphabetical":
-                newSortingAlgorithm = SortingAlgorithm.Alphabetic;
-                break;
+                newSortingAlgorithm = SortingAlgorithm.Alphabetic
+                break
             case "recent":
-                newSortingAlgorithm = SortingAlgorithm.Recency;
-                break;
+                newSortingAlgorithm = SortingAlgorithm.Recency
+                break
             case "unread-first":
-                newSortingAlgorithm = SortingAlgorithm.Unread;
-                break;
+                newSortingAlgorithm = SortingAlgorithm.Unread
+                break
         }
-        RoomListStoreV3.instance.resort(newSortingAlgorithm);
-        this.snapshot.merge({ activeSortOption: option });
+        RoomListStoreV3.instance.resort(newSortingAlgorithm)
+        this.snapshot.merge({ activeSortOption: option })
 
         // Record analytics for this action
         if (oldSortingAlgorithm) {
-            PosthogTrackers.trackRoomListSortingAlgorithmChange(oldSortingAlgorithm, newSortingAlgorithm);
+            PosthogTrackers.trackRoomListSortingAlgorithmChange(oldSortingAlgorithm, newSortingAlgorithm)
         }
     };
 
     public toggleMessagePreview = (): void => {
-        PosthogTrackers.trackInteraction("WebRoomListMessagePreviewToggle");
+        PosthogTrackers.trackInteraction("WebRoomListMessagePreviewToggle")
 
-        const isMessagePreviewEnabled = !SettingsStore.getValue("RoomList.showMessagePreview");
-        SettingsStore.setValue("RoomList.showMessagePreview", null, SettingLevel.DEVICE, isMessagePreviewEnabled);
-        this.snapshot.merge({ isMessagePreviewEnabled });
+        const isMessagePreviewEnabled = !SettingsStore.getValue("RoomList.showMessagePreview")
+        SettingsStore.setValue("RoomList.showMessagePreview", null, SettingLevel.DEVICE, isMessagePreviewEnabled)
+        this.snapshot.merge({ isMessagePreviewEnabled })
     };
 }
 
@@ -208,28 +211,28 @@ export class RoomListHeaderViewModel
  * @returns
  */
 function getInitialSnapshot(spaceStore: SpaceStoreClass, matrixClient: MatrixClient): RoomListHeaderViewSnapshot {
-    const sortingAlgorithm = SettingsStore.getValue("RoomList.preferredSorting");
+    const sortingAlgorithm = SettingsStore.getValue("RoomList.preferredSorting")
 
-    let activeSortOption: SortOption;
+    let activeSortOption: SortOption
     switch (sortingAlgorithm) {
         case SortingAlgorithm.Alphabetic:
-            activeSortOption = "alphabetical";
-            break;
+            activeSortOption = "alphabetical"
+            break
         case SortingAlgorithm.Recency:
-            activeSortOption = "recent";
-            break;
+            activeSortOption = "recent"
+            break
         case SortingAlgorithm.Unread:
-            activeSortOption = "unread-first";
-            break;
+            activeSortOption = "unread-first"
+            break
     }
 
-    const isMessagePreviewEnabled = SettingsStore.getValue("RoomList.showMessagePreview");
+    const isMessagePreviewEnabled = SettingsStore.getValue("RoomList.showMessagePreview")
 
     return {
         activeSortOption,
         isMessagePreviewEnabled,
         ...computeHeaderSpaceState(spaceStore, matrixClient),
-    };
+    }
 }
 
 /**
@@ -237,9 +240,9 @@ function getInitialSnapshot(spaceStore: SpaceStoreClass, matrixClient: MatrixCli
  * @param spaceStore - The space store instance.
  */
 function getHeaderTitle(spaceStore: SpaceStoreClass): string {
-    const activeSpace = spaceStore.activeSpaceRoom;
-    const spaceName = activeSpace?.name;
-    return spaceName ?? getMetaSpaceName(spaceStore.activeSpace as MetaSpace, spaceStore.allRoomsInHome);
+    const activeSpace = spaceStore.activeSpaceRoom
+    const spaceName = activeSpace?.name
+    return spaceName ?? getMetaSpaceName(spaceStore.activeSpace as MetaSpace, spaceStore.allRoomsInHome)
 }
 
 /**
@@ -247,7 +250,7 @@ function getHeaderTitle(spaceStore: SpaceStoreClass): string {
  * @param canCreateRoom - Whether the user can create a room.
  */
 function getCanCreateVideoRoom(canCreateRoom: boolean): boolean {
-    return SettingsStore.getValue("feature_video_rooms") && canCreateRoom;
+    return SettingsStore.getValue("feature_video_rooms") && canCreateRoom
 }
 
 /**
@@ -260,17 +263,17 @@ function computeHeaderSpaceState(
     spaceStore: SpaceStoreClass,
     matrixClient: MatrixClient,
 ): Omit<RoomListHeaderViewSnapshot, "activeSortOption" | "isMessagePreviewEnabled"> {
-    const activeSpace = spaceStore.activeSpaceRoom;
-    const title = getHeaderTitle(spaceStore);
+    const activeSpace = spaceStore.activeSpaceRoom
+    const title = getHeaderTitle(spaceStore)
 
-    const canCreateRoom = hasCreateRoomRights(matrixClient, activeSpace);
-    const canCreateVideoRoom = getCanCreateVideoRoom(canCreateRoom);
-    const displayComposeMenu = canCreateRoom;
-    const displaySpaceMenu = Boolean(activeSpace);
+    const canCreateRoom = hasCreateRoomRights(matrixClient, activeSpace)
+    const canCreateVideoRoom = getCanCreateVideoRoom(canCreateRoom)
+    const displayComposeMenu = canCreateRoom
+    const displaySpaceMenu = Boolean(activeSpace)
     const canInviteInSpace = Boolean(
         activeSpace?.getJoinRule() === JoinRule.Public || activeSpace?.canInvite(matrixClient.getSafeUserId()),
-    );
-    const canAccessSpaceSettings = Boolean(activeSpace && shouldShowSpaceSettings(activeSpace));
+    )
+    const canAccessSpaceSettings = Boolean(activeSpace && shouldShowSpaceSettings(activeSpace))
 
     return {
         title,
@@ -280,5 +283,5 @@ function computeHeaderSpaceState(
         displaySpaceMenu,
         canInviteInSpace,
         canAccessSpaceSettings,
-    };
+    }
 }

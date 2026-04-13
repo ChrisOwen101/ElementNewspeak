@@ -5,32 +5,25 @@ SPDX-License-Identifier: AGPL-3.0-only OR GPL-3.0-only OR LicenseRef-Element-Com
 Please see LICENSE files in the repository root for full details.
 */
 
-import { type Room, RoomStateEvent, type MatrixEvent, type EmptyObject } from "matrix-js-sdk/src/matrix";
-import { logger } from "matrix-js-sdk/src/logger";
+import { type Room, RoomStateEvent, type MatrixEvent, type EmptyObject } from "matrix-js-sdk/src/matrix"
+import { logger } from "matrix-js-sdk/src/logger"
 
-import { type ActionPayload } from "../dispatcher/payloads";
-import { AsyncStoreWithClient } from "./AsyncStoreWithClient";
-import defaultDispatcher from "../dispatcher/dispatcher";
-import { Action } from "../dispatcher/actions";
-import { type SubmitDynamicRoomPromptPayload } from "../dispatcher/payloads/SubmitDynamicRoomPromptPayload";
-import {
-    RENDERER_STATE_EVENT,
-    RENDERER_PROMPT_EVENT,
-    RENDERER_STATUS_EVENT,
-} from "../dynamic-rooms/constants";
-import {
-    type RendererStateEventContent,
-    type RendererStatusEventContent,
-} from "../dynamic-rooms/schema";
+import { type ActionPayload } from "../dispatcher/payloads"
+import { AsyncStoreWithClient } from "./AsyncStoreWithClient"
+import defaultDispatcher from "../dispatcher/dispatcher"
+import { Action } from "../dispatcher/actions"
+import { type SubmitDynamicRoomPromptPayload } from "../dispatcher/payloads/SubmitDynamicRoomPromptPayload"
+import { RENDERER_STATE_EVENT, GENERATE_API_URL } from "../dynamic-rooms/constants"
+import { type RendererStateEventContent } from "../dynamic-rooms/schema"
 
 export interface RendererConfig {
-    readonly bundleUrl: string;
-    readonly schemaVersion: string;
-    readonly displayName: string;
-    readonly schema: RendererStateEventContent["schema"];
+    readonly bundleUrl: string
+    readonly schemaVersion: string
+    readonly displayName: string
+    readonly schema: RendererStateEventContent["schema"]
 }
 
-export type RendererStatus = RendererStatusEventContent["status"] | "none";
+export type RendererStatus = "none" | "pending" | "ready" | "error"
 
 interface DynamicRoomStoreState extends EmptyObject {
     // State is held in instance maps below rather than in the
@@ -39,18 +32,18 @@ interface DynamicRoomStoreState extends EmptyObject {
 }
 
 /**
- * Watches for `io.element.custom_renderer` and `io.element.renderer_status`
- * state events across all joined rooms. Provides per-room renderer configs
- * and generation status to the rest of the application.
+ * Watches for `io.element.custom_renderer` state events across all joined
+ * rooms. Provides per-room renderer configs and generation status.
  *
- * Also handles the `SubmitDynamicRoomPrompt` action by sending the user's
- * prompt as a timeline event into the room.
+ * Handles the `SubmitDynamicRoomPrompt` action by calling the generation
+ * server's HTTP API, then posting the resulting renderer state event into
+ * the room.
  */
 export class DynamicRoomStore extends AsyncStoreWithClient<DynamicRoomStoreState> {
     private static readonly internalInstance = ((): DynamicRoomStore => {
-        const instance = new DynamicRoomStore();
-        instance.start();
-        return instance;
+        const instance = new DynamicRoomStore()
+        instance.start()
+        return instance
     })();
 
     /** Per-room renderer configuration, keyed by roomId */
@@ -60,119 +53,161 @@ export class DynamicRoomStore extends AsyncStoreWithClient<DynamicRoomStoreState
     private statuses = new Map<string, RendererStatus>();
 
     private constructor() {
-        super(defaultDispatcher, {});
+        super(defaultDispatcher, {})
     }
 
     public static get instance(): DynamicRoomStore {
-        return DynamicRoomStore.internalInstance;
+        return DynamicRoomStore.internalInstance
     }
 
     /**
      * Returns the active renderer config for a room, or undefined if none is set.
      */
     public getRenderer(roomId: string): RendererConfig | undefined {
-        return this.renderers.get(roomId);
+        return this.renderers.get(roomId)
     }
 
     /**
      * Returns the current generation status for a room.
      */
     public getStatus(roomId: string): RendererStatus {
-        return this.statuses.get(roomId) ?? "none";
+        return this.statuses.get(roomId) ?? "none"
     }
 
     // ─── Lifecycle ──────────────────────────────────────────────────────
 
     protected async onReady(): Promise<void> {
-        if (!this.matrixClient) return;
-        this.matrixClient.on(RoomStateEvent.Events, this.onRoomStateEvent);
+        if (!this.matrixClient) return
+        this.matrixClient.on(RoomStateEvent.Events, this.onRoomStateEvent)
 
         // Bootstrap from already-known rooms
         for (const room of this.matrixClient.getRooms()) {
-            this.loadRendererFromRoom(room);
-            this.loadStatusFromRoom(room);
+            this.loadRendererFromRoom(room)
         }
-        this.emit("update", null);
+        this.emit("update", null)
     }
 
     protected async onNotReady(): Promise<void> {
-        this.matrixClient?.off(RoomStateEvent.Events, this.onRoomStateEvent);
-        this.renderers = new Map();
-        this.statuses = new Map();
+        this.matrixClient?.off(RoomStateEvent.Events, this.onRoomStateEvent)
+        this.renderers = new Map()
+        this.statuses = new Map()
     }
 
     protected async onAction(payload: ActionPayload): Promise<void> {
         if (payload.action === Action.SubmitDynamicRoomPrompt) {
-            const { roomId, prompt } = payload as SubmitDynamicRoomPromptPayload;
-            await this.submitPrompt(roomId, prompt);
+            const { roomId, prompt } = payload as SubmitDynamicRoomPromptPayload
+            await this.submitPrompt(roomId, prompt)
         }
     }
 
     // ─── Event Handlers ─────────────────────────────────────────────────
 
     private readonly onRoomStateEvent = (event: MatrixEvent): void => {
-        const eventType = event.getType();
-        const roomId = event.getRoomId();
-        if (!roomId) return;
+        const eventType = event.getType()
+        const roomId = event.getRoomId()
+        if (!roomId) return
 
-        const room = this.matrixClient?.getRoom(roomId);
-        if (!room) return;
+        const room = this.matrixClient?.getRoom(roomId)
+        if (!room) return
 
         if (eventType === RENDERER_STATE_EVENT) {
-            this.loadRendererFromRoom(room);
-            this.emit("update", roomId);
-        } else if (eventType === RENDERER_STATUS_EVENT) {
-            this.loadStatusFromRoom(room);
-            this.emit("update", roomId);
+            this.loadRendererFromRoom(room)
+            this.emit("update", roomId)
         }
     };
 
     // ─── Loaders ────────────────────────────────────────────────────────
 
-    private loadRendererFromRoom(room: Room): void {
-        const event = room.currentState.getStateEvents(RENDERER_STATE_EVENT, "");
-        if (!event) return;
+    /**
+     * Rewrites bundle URLs that point at localhost so they use the same
+     * host the browser is currently on. This lets other machines on the
+     * network load bundles that were generated before BUNDLE_BASE_URL
+     * was set to the LAN IP.
+     */
+    private rewriteBundleUrl(url: string): string {
+        try {
+            const parsed = new URL(url)
+            if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
+                parsed.hostname = window.location.hostname
+                return parsed.toString()
+            }
+        } catch {
+            // leave malformed URLs unchanged
+        }
+        return url
+    }
 
-        const content = event.getContent<RendererStateEventContent>();
-        if (!content.bundleUrl) return;
+    private loadRendererFromRoom(room: Room): void {
+        const event = room.currentState.getStateEvents(RENDERER_STATE_EVENT, "")
+        if (!event) return
+
+        const content = event.getContent<RendererStateEventContent>()
+        if (!content.bundleUrl) return
 
         this.renderers.set(room.roomId, {
-            bundleUrl: content.bundleUrl,
+            bundleUrl: this.rewriteBundleUrl(content.bundleUrl),
             schemaVersion: content.schemaVersion ?? "1",
             displayName: content.displayName ?? room.name,
             schema: content.schema ?? { events: [] },
-        });
-    }
+        })
 
-    private loadStatusFromRoom(room: Room): void {
-        const event = room.currentState.getStateEvents(RENDERER_STATUS_EVENT, "");
-        if (!event) return;
-
-        const content = event.getContent<RendererStatusEventContent>();
-        if (content.status) {
-            this.statuses.set(room.roomId, content.status);
-        }
+        // If we have a renderer, it's "ready"
+        this.statuses.set(room.roomId, "ready")
     }
 
     // ─── Actions ────────────────────────────────────────────────────────
 
     /**
-     * Sends the user's prompt into the room as an `io.element.renderer_prompt`
-     * timeline event. The bot picks this up and starts generating.
+     * Calls the generation server HTTP API, then posts the resulting
+     * `io.element.custom_renderer` state event into the room.
      */
     private async submitPrompt(roomId: string, prompt: string): Promise<void> {
         if (!this.matrixClient) {
-            logger.error("DynamicRoomStore: Cannot submit prompt — no MatrixClient");
-            return;
+            logger.error("DynamicRoomStore: Cannot submit prompt — no MatrixClient")
+            return
         }
 
+        // Set status to pending and notify listeners
+        this.statuses.set(roomId, "pending")
+        this.emit("update", roomId)
+
         try {
-            await this.matrixClient.sendEvent(roomId, RENDERER_PROMPT_EVENT, {
-                body: prompt,
-            });
-            logger.info(`DynamicRoomStore: Sent renderer prompt to ${roomId}`);
+            const response = await fetch(GENERATE_API_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ roomId, prompt }),
+            })
+
+            if (!response.ok) {
+                const errorBody = await response.json().catch(() => ({ error: response.statusText }))
+                throw new Error(errorBody.error || `HTTP ${response.status}`)
+            }
+
+            const { bundleUrl: rawBundleUrl } = (await response.json()) as { bundleUrl: string }
+            const bundleUrl = this.rewriteBundleUrl(rawBundleUrl)
+            logger.info(`DynamicRoomStore: Generation complete, bundleUrl=${bundleUrl}`)
+
+            // Post the renderer state event into the room so other clients see it
+            await this.matrixClient.sendStateEvent(roomId, RENDERER_STATE_EVENT, {
+                bundleUrl,
+                displayName: prompt.slice(0, 80),
+                schemaVersion: "1",
+                schema: { events: [] },
+            } as any, "")
+
+            // Update local state immediately (onRoomStateEvent will also fire)
+            this.renderers.set(roomId, {
+                bundleUrl,
+                displayName: prompt.slice(0, 80),
+                schemaVersion: "1",
+                schema: { events: [] },
+            })
+            this.statuses.set(roomId, "ready")
+            this.emit("update", roomId)
         } catch (err) {
-            logger.error("DynamicRoomStore: Failed to send renderer prompt", err);
+            logger.error("DynamicRoomStore: Generation failed", err)
+            this.statuses.set(roomId, "error")
+            this.emit("update", roomId)
         }
     }
 }

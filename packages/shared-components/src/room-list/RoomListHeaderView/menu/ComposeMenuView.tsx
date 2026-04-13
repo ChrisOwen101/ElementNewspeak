@@ -5,22 +5,23 @@
  * Please see LICENSE files in the repository root for full details.
  */
 
-import React, { useState, type JSX } from "react";
-import { IconButton, Menu, MenuItem } from "@vector-im/compound-web";
-import ComposeIcon from "@vector-im/compound-design-tokens/assets/web/icons/compose";
-import VideoCallIcon from "@vector-im/compound-design-tokens/assets/web/icons/video-call";
-import ChatIcon from "@vector-im/compound-design-tokens/assets/web/icons/chat";
-import RoomIcon from "@vector-im/compound-design-tokens/assets/web/icons/room";
+import React, { useState, type JSX } from "react"
+import { IconButton, Menu, MenuItem } from "@vector-im/compound-web"
+import ComposeIcon from "@vector-im/compound-design-tokens/assets/web/icons/compose"
+import VideoCallIcon from "@vector-im/compound-design-tokens/assets/web/icons/video-call"
+import ChatIcon from "@vector-im/compound-design-tokens/assets/web/icons/chat"
+import RoomIcon from "@vector-im/compound-design-tokens/assets/web/icons/room"
+import ExtensionsIcon from "@vector-im/compound-design-tokens/assets/web/icons/extensions"
 
-import { type RoomListHeaderViewModel } from "../RoomListHeaderView";
-import { useI18n } from "../../../utils/i18nContext";
-import { useViewModel } from "../../../viewmodel";
+import { type RoomListHeaderViewModel } from "../RoomListHeaderView"
+import { useI18n } from "../../../utils/i18nContext"
+import { useViewModel } from "../../../viewmodel"
 
 interface ComposeMenuViewProps {
     /**
      * The view model for the room list header
      */
-    vm: RoomListHeaderViewModel;
+    vm: RoomListHeaderViewModel
 }
 
 /**
@@ -33,9 +34,9 @@ interface ComposeMenuViewProps {
  * ```
  */
 export function ComposeMenuView({ vm }: ComposeMenuViewProps): JSX.Element {
-    const { translate: _t } = useI18n();
-    const [open, setOpen] = useState(false);
-    const { canCreateRoom, canCreateVideoRoom } = useViewModel(vm);
+    const { translate: _t } = useI18n()
+    const [open, setOpen] = useState(false)
+    const { canCreateRoom, canCreateVideoRoom } = useViewModel(vm)
 
     return (
         <Menu
@@ -63,6 +64,14 @@ export function ComposeMenuView({ vm }: ComposeMenuViewProps): JSX.Element {
                     hideChevron
                 />
             )}
+            {canCreateRoom && (
+                <MenuItem
+                    Icon={ExtensionsIcon}
+                    label={_t("action|new_tool")}
+                    onSelect={vm.createToolRoom}
+                    hideChevron
+                />
+            )}
         </Menu>
-    );
+    )
 }

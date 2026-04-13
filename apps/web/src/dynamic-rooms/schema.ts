@@ -14,11 +14,11 @@ Please see LICENSE files in the repository root for full details.
  */
 export interface EventTypeSchema {
     /** Fully namespaced Matrix event type, e.g. "io.element.kanban.card" */
-    readonly type: string;
+    readonly type: string
     /** Human-readable description of the event */
-    readonly description?: string;
+    readonly description?: string
     /** Maps field name → type descriptor string, e.g. { title: "string", status: "todo|in_progress|done" } */
-    readonly contentFields: Record<string, string>;
+    readonly contentFields: Record<string, string>
 }
 
 /**
@@ -26,44 +26,22 @@ export interface EventTypeSchema {
  * Declares which custom event types the room's renderer can handle.
  */
 export interface RendererSchema {
-    readonly events: ReadonlyArray<EventTypeSchema>;
+    readonly events: ReadonlyArray<EventTypeSchema>
 }
 
 /**
  * Content of the `io.element.custom_renderer` **state** event.
- * Posted by the bot once the LLM-generated bundle is ready.
+ * Posted by the client once the generation server returns a bundleUrl.
  */
 export interface RendererStateEventContent {
     /** URL of the self-contained HTML bundle to load in the iframe */
-    readonly bundleUrl: string;
+    readonly bundleUrl: string
     /** Semver string for the schema contract */
-    readonly schemaVersion: string;
+    readonly schemaVersion: string
     /** Human-readable label for the renderer, shown in the room header */
-    readonly displayName: string;
+    readonly displayName: string
     /** Describes the custom event types this renderer handles */
-    readonly schema: RendererSchema;
-}
-
-/**
- * Content of the `io.element.renderer_prompt` **timeline** event.
- * Sent by the user when they submit a prompt describing the room.
- */
-export interface RendererPromptEventContent {
-    /** The user's natural-language prompt */
-    readonly body: string;
-}
-
-/**
- * Content of the `io.element.renderer_status` **state** event.
- * Posted by the bot to communicate progress back to the client.
- */
-export interface RendererStatusEventContent {
-    /** Current generation status */
-    readonly status: "pending" | "ready" | "error";
-    /** Bundle URL once status is "ready" */
-    readonly bundleUrl?: string;
-    /** Error message when status is "error" */
-    readonly error?: string;
+    readonly schema: RendererSchema
 }
 
 // ─── postMessage Bridge Types ───────────────────────────────────────────────
@@ -73,51 +51,51 @@ export interface RendererStatusEventContent {
  * No live MatrixClient references — just plain data.
  */
 export interface SerializedEvent {
-    readonly eventId: string;
-    readonly type: string;
-    readonly sender: string;
-    readonly senderDisplayName: string;
-    readonly content: Record<string, unknown>;
-    readonly timestamp: number;
+    readonly eventId: string
+    readonly type: string
+    readonly sender: string
+    readonly senderDisplayName: string
+    readonly content: Record<string, unknown>
+    readonly timestamp: number
 }
 
 /**
  * Snapshot of room state passed to the iframe component.
  */
 export interface SerializedRoomState {
-    readonly roomName: string;
-    readonly members: ReadonlyArray<{ userId: string; displayName: string }>;
+    readonly roomName: string
+    readonly members: ReadonlyArray<{ userId: string; displayName: string }>
 }
 
 /**
  * Parent → iframe: delivers room data whenever the timeline updates.
  */
 export interface RoomDataMessage {
-    readonly type: "ROOM_DATA";
-    readonly messages: ReadonlyArray<SerializedEvent>;
-    readonly roomState: SerializedRoomState;
+    readonly type: "ROOM_DATA"
+    readonly messages: ReadonlyArray<SerializedEvent>
+    readonly roomState: SerializedRoomState
 }
 
 /**
  * iframe → parent: the component wants to send a Matrix event.
  */
 export interface ActionSendEventMessage {
-    readonly type: "ACTION_SEND_EVENT";
-    readonly eventType: string;
-    readonly content: Record<string, unknown>;
+    readonly type: "ACTION_SEND_EVENT"
+    readonly eventType: string
+    readonly content: Record<string, unknown>
 }
 
 /**
  * Parent → iframe: result of a send-event action.
  */
 export interface ActionSendEventResultMessage {
-    readonly type: "ACTION_SEND_EVENT_RESULT";
-    readonly success: boolean;
-    readonly eventId?: string;
-    readonly error?: string;
+    readonly type: "ACTION_SEND_EVENT_RESULT"
+    readonly success: boolean
+    readonly eventId?: string
+    readonly error?: string
 }
 
 /**
  * Discriminated union of every message type that crosses the postMessage bridge.
  */
-export type BridgeMessage = RoomDataMessage | ActionSendEventMessage | ActionSendEventResultMessage;
+export type BridgeMessage = RoomDataMessage | ActionSendEventMessage | ActionSendEventResultMessage

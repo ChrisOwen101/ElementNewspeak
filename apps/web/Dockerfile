@@ -23,6 +23,8 @@ RUN pnpm install
 # We skip docker-package.sh / get-version-from-git.sh because they assume
 # matrix-js-sdk is a git checkout inside node_modules.
 ARG VERSION=docker
+ARG GENERATE_API_URL=http://localhost:3001/generate
+ENV GENERATE_API_URL=$GENERATE_API_URL
 RUN VERSION=$VERSION pnpm --dir apps/web build
 
 # Copy the config now so that we don't create another layer in the app image

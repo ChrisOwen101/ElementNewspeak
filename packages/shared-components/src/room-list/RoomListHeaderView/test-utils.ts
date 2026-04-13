@@ -5,10 +5,10 @@
  * Please see LICENSE files in the repository root for full details.
  */
 
-import { vi } from "vitest";
+import { vi } from "vitest"
 
-import { MockViewModel } from "../../viewmodel";
-import { type RoomListHeaderViewActions, type RoomListHeaderViewSnapshot } from "./RoomListHeaderView";
+import { MockViewModel } from "../../viewmodel"
+import { type RoomListHeaderViewActions, type RoomListHeaderViewSnapshot } from "./RoomListHeaderView"
 
 /**
  * A mocked ViewModel for the RoomListHeaderView, for use in tests.
@@ -17,6 +17,7 @@ export class MockedViewModel extends MockViewModel<RoomListHeaderViewSnapshot> i
     public createChatRoom = vi.fn<() => void>();
     public createRoom = vi.fn<() => void>();
     public createVideoRoom = vi.fn<() => void>();
+    public createToolRoom = vi.fn<() => void>();
     public openSpaceHome = vi.fn<() => void>();
     public openSpaceSettings = vi.fn<() => void>();
     public inviteInSpace = vi.fn<() => void>();
@@ -25,4 +26,4 @@ export class MockedViewModel extends MockViewModel<RoomListHeaderViewSnapshot> i
     public toggleMessagePreview = vi.fn<() => void>();
 }
 
-export { defaultSnapshot } from "./default-snapshot";
+export { defaultSnapshot } from "./default-snapshot"

@@ -43,6 +43,8 @@ export interface DynamicRoomViewActions {
     onPromptChange(value: string): void;
     /** Called when the user submits the prompt */
     onSubmit(): void;
+    /** Called when the iframe wants to send a Matrix event */
+    onSendEvent(eventType: string, content: Record<string, unknown>): void;
 }
 
 /** The view model type for DynamicRoomView */
@@ -116,6 +118,7 @@ export function DynamicRoomView({ vm }: Readonly<DynamicRoomViewProps>): JSX.Ele
                             bundleUrl={state.bundleUrl}
                             messages={state.messages}
                             roomState={{ roomName: state.roomName, members: [] }}
+                            onSendEvent={vm.onSendEvent}
                         />
                     )}
                 </div>

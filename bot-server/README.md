@@ -63,24 +63,25 @@ docker run -d \
 
 ## Environment Variables
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `MATRIX_HOMESERVER_URL` | Yes | `http://localhost:8008` | Matrix homeserver URL |
-| `MATRIX_BOT_TOKEN` | Yes | (none) | Bot access token from the homeserver |
-| `MATRIX_BOT_USER_ID` | Yes | (none) | Bot's Matrix user ID, e.g. `@renderer-bot:matrix.org` |
-| `BUNDLE_PORT` | No | `3001` | Port to serve bundles on |
-| `BUNDLE_BASE_URL` | No | `http://localhost:3001` | Public URL for bundles (used in state events) |
+| Variable                | Required | Default                 | Description                                           |
+| ----------------------- | -------- | ----------------------- | ----------------------------------------------------- |
+| `MATRIX_HOMESERVER_URL` | Yes      | `http://localhost:8008` | Matrix homeserver URL                                 |
+| `MATRIX_BOT_TOKEN`      | Yes      | (none)                  | Bot access token from the homeserver                  |
+| `MATRIX_BOT_USER_ID`    | Yes      | (none)                  | Bot's Matrix user ID, e.g. `@renderer-bot:matrix.org` |
+| `BUNDLE_PORT`           | No       | `3001`                  | Port to serve bundles on                              |
+| `BUNDLE_BASE_URL`       | No       | `http://localhost:3001` | Public URL for bundles (used in state events)         |
 
 ## Claude Code Installation
 
 The Dockerfile assumes Claude Code is available as an npm package. If not, you may need to:
 
 1. **Install Claude Code locally:**
-   ```bash
-   npm install -g @anthropic-ai/claude-code
-   # or
-   curl -sSL https://install.anthropic.com/claude-code | bash
-   ```
+
+    ```bash
+    npm install -g @anthropic-ai/claude-code
+    # or
+    curl -sSL https://install.anthropic.com/claude-code | bash
+    ```
 
 2. **Update the Dockerfile** with the correct installation method for your environment.
 
@@ -89,16 +90,18 @@ The Dockerfile assumes Claude Code is available as an npm package. If not, you m
 ## Getting a Bot Token
 
 1. **Create a bot user on your Matrix homeserver:**
-   ```bash
-   register_new_matrix_user -u renderer-bot -p your_password http://localhost:8008
-   ```
+
+    ```bash
+    register_new_matrix_user -u renderer-bot -p your_password http://localhost:8008
+    ```
 
 2. **Login to get the access token:**
-   ```bash
-   curl -X POST http://localhost:8008/_matrix/client/r0/login \
-     -H "Content-Type: application/json" \
-     -d '{"type":"m.login.password", "user":"renderer-bot", "password":"your_password"}'
-   ```
+
+    ```bash
+    curl -X POST http://localhost:8008/_matrix/client/r0/login \
+      -H "Content-Type: application/json" \
+      -d '{"type":"m.login.password", "user":"renderer-bot", "password":"your_password"}'
+    ```
 
 3. **Copy the `access_token` from the response into `.env`**
 
@@ -137,6 +140,7 @@ docker logs dynamic-room-bot
 ### Bot Status
 
 The bot logs generation progress and errors to stdout. Check the logs for:
+
 - `[bot] Received prompt for <roomId>`
 - `[bot] Claude Code finished for <roomId>`
 - `[bot] Bundle ready at <url>`
@@ -149,6 +153,7 @@ The bot logs generation progress and errors to stdout. Check the logs for:
 **Error:** `ENOENT: no such file or directory, spawn 'claude'`
 
 **Solution:** Install Claude Code and ensure it's in `$PATH`:
+
 ```bash
 which claude  # Should return the path to Claude Code
 ```
@@ -164,6 +169,7 @@ which claude  # Should return the path to Claude Code
 **Error:** No `[bot] Received prompt` in logs
 
 **Solution:**
+
 1. Verify the bot token is valid
 2. Check that the bot is joined to the room
 3. Ensure the event type is exactly `io.element.renderer_prompt`

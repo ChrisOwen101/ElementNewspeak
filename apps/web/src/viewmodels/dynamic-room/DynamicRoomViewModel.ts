@@ -39,6 +39,8 @@ export interface DynamicRoomActions {
     onPromptChange(value: string): void;
     /** Called when the user submits the prompt */
     onSubmit(): void;
+    /** Called when the iframe wants to send a Matrix event into the room */
+    onSendEvent(eventType: string, content: Record<string, unknown>): void;
 }
 
 // ─── Props (injected at construction) ───────────────────────────────────────
@@ -81,7 +83,7 @@ export class DynamicRoomViewModel
     // ─── Actions ────────────────────────────────────────────────────────
 
     public onPromptChange = (value: string): void => {
-        this.snapshot.update({ promptValue: value });
+        this.snapshot.merge({ promptValue: value });
     };
 
     public onSubmit = (): void => {
@@ -95,7 +97,14 @@ export class DynamicRoomViewModel
         });
 
         // Clear the input
-        this.snapshot.update({ promptValue: "" });
+        this.snapshot.merge({ promptValue: "" });
+    };
+
+    public onSendEvent = (eventType: string, content: Record<string, unknown>): void => {
+        // Cast eventType to satisfy matrix-js-sdk's strict typing for custom event types
+        this.props.client.sendEvent(this.props.room.roomId, eventType as any, content).catch((err) => {
+            console.error("[DynamicRoomViewModel] Failed to send event:", err);
+        });
     };
 
     // ─── Event handlers ─────────────────────────────────────────────────
@@ -108,7 +117,7 @@ export class DynamicRoomViewModel
         const renderer = store.getRenderer(roomId);
         const status = store.getStatus(roomId);
 
-        this.snapshot.update({
+        this.snapshot.merge({
             rendererStatus: status,
             bundleUrl: renderer?.bundleUrl,
         });
@@ -116,14 +125,14 @@ export class DynamicRoomViewModel
 
     private readonly onTimelineEvent = (_event: MatrixEvent): void => {
         if (this.isDisposed) return;
-        this.snapshot.update({
+        this.snapshot.merge({
             messages: DynamicRoomViewModel.serializeTimeline(this.props.room),
         });
     };
 
     private readonly onRoomNameChanged = (): void => {
         if (this.isDisposed) return;
-        this.snapshot.update({ roomName: this.props.room.name });
+        this.snapshot.merge({ roomName: this.props.room.name });
     };
 
     // ─── Helpers ────────────────────────────────────────────────────────
