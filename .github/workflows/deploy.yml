@@ -62,11 +62,11 @@ jobs:
                   docker compose ps
 
                   echo "Verifying Element Web..."
-                  docker exec element-web wget -q --spider http://localhost:8080/config.json
+                  docker exec element-web wget -q --spider http://localhost:${ELEMENT_WEB_PORT:-8088}/config.json
                   echo "✓ Element Web is healthy"
 
                   echo "Verifying Bot Server..."
-                  docker exec dynamic-room-bot curl -sf http://localhost:3001/health
+                  docker exec dynamic-room-bot curl -sf http://localhost:${BUNDLE_PORT:-3002}/health
                   echo "✓ Bot Server is healthy"
 
                   echo "[$(date)] Deployment successful!" >> deployment.log

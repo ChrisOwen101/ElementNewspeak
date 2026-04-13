@@ -220,18 +220,27 @@ export class DynamicRoomStore extends AsyncStoreWithClient<DynamicRoomStoreState
 
             // Post the renderer state event into the room so other clients see it
             logger.info(`DynamicRoomStore: Sending state event to room ${roomId}`)
-            await this.matrixClient.sendStateEvent(
-                roomId,
-                RENDERER_STATE_EVENT as any,
-                {
-                    bundleUrl,
-                    displayName,
-                    schemaVersion: "1",
-                    schema: { events: [] },
-                },
-                "",
-            )
-            logger.info(`DynamicRoomStore: State event sent successfully for room ${roomId}`)
+            try {
+                await this.matrixClient.sendStateEvent(
+                    roomId,
+                    RENDERER_STATE_EVENT as any,
+                    {
+                        bundleUrl,
+                        displayName,
+                        schemaVersion: "1",
+                        schema: { events: [] },
+                    },
+                    "",
+                )
+                logger.info(`DynamicRoomStore: State event sent successfully for room ${roomId}`)
+            } catch (stateErr) {
+                // If we lack permission to set state events, still update locally
+                // so the current session picks up the new bundle.
+                logger.warn(
+                    `DynamicRoomStore: Failed to send state event for room ${roomId} (bundle will only be visible locally):`,
+                    stateErr,
+                )
+            }
 
             // Update local state immediately (onRoomStateEvent will also fire)
             this.renderers.set(roomId, {

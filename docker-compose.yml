@@ -19,7 +19,7 @@ services:
         networks:
             - dynamic-rooms
         healthcheck:
-            test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/config.json"]
+            test: ["CMD", "sh", "-c", "wget -q --spider http://localhost:$${ELEMENT_WEB_PORT}/config.json"]
             interval: 30s
             timeout: 10s
             retries: 3
