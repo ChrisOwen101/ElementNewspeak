@@ -108,10 +108,9 @@ export class DynamicRoomStore extends AsyncStoreWithClient<DynamicRoomStoreState
     }
 
     protected async onAction(payload: ActionPayload): Promise<void> {
-        logger.info(`DynamicRoomStore: onAction called with action=${payload.action}`)
         if (payload.action === Action.SubmitDynamicRoomPrompt) {
             const { roomId, prompt } = payload as SubmitDynamicRoomPromptPayload
-            logger.info(`DynamicRoomStore: Handling SubmitDynamicRoomPrompt for room=${roomId}, prompt=${prompt.slice(0, 50)}...`)
+            logger.info(`DynamicRoomStore: *** SubmitDynamicRoomPrompt received for room=${roomId}, prompt="${prompt.slice(0, 50)}..."`)
             await this.submitPrompt(roomId, prompt)
         }
     }

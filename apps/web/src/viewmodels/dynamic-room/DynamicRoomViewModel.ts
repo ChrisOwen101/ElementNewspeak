@@ -118,6 +118,8 @@ export class DynamicRoomViewModel
     public onEditSubmit = (editPrompt: string): void => {
         if (!editPrompt) return
 
+        console.log(`[DynamicRoomVM] onEditSubmit dispatching SubmitDynamicRoomPrompt for room=${this.props.room.roomId}, prompt="${editPrompt.slice(0, 50)}"`)
+
         this.snapshot.merge({ isEditPending: true })
 
         defaultDispatcher.dispatch<SubmitDynamicRoomPromptPayload>({
