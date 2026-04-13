@@ -47,7 +47,7 @@ async function generate(roomId: string, userPrompt: string): Promise<string> {
 
     // 3. Read system prompt and build user prompt
     const systemPrompt = await fs.readFile(SYSTEM_PROMPT_PATH, "utf-8")
-    const prompt = isEdit ? buildEditPrompt(userPrompt) : buildPrompt(userPrompt)
+    const prompt = isEdit ? buildEditPrompt(userPrompt, outputDir) : buildPrompt(userPrompt, outputDir)
     console.log(`[server] ${isEdit ? "Editing" : "Generating"} for ${roomId} (cwd: ${outputDir})...`)
     console.log(`[server] Invoking Claude Code for ${roomId} (cwd: ${outputDir})...`)
 
@@ -132,28 +132,29 @@ async function generate(roomId: string, userPrompt: string): Promise<string> {
     return bundleUrl
 }
 
-function buildPrompt(userPrompt: string): string {
+function buildPrompt(userPrompt: string, outputDir: string): string {
     return `
 Build a self-contained web component based on this user request:
 
 "${userPrompt}"
 
-Write the output to src/index.html in the current directory, then copy it to dist/index.html.
-Verify dist/index.html exists before finishing.
+Write the output to ${outputDir}/src/index.html, then copy it to ${outputDir}/dist/index.html.
+IMPORTANT: Use these exact absolute paths. Do NOT write to /app/src/ or /app/dist/.
+Verify ${outputDir}/dist/index.html exists before finishing.
 `.trim()
 }
 
-function buildEditPrompt(userPrompt: string): string {
+function buildEditPrompt(userPrompt: string, outputDir: string): string {
     return `
-There is an existing self-contained web component in src/index.html.
-The user wants to modify it. Read src/index.html first, then apply the following changes:
+There is an existing self-contained web component in ${outputDir}/src/index.html.
+The user wants to modify it. Read ${outputDir}/src/index.html first, then apply the following changes:
 
 "${userPrompt}"
 
-Only edit files inside the current directory (src/ and dist/).
-Do NOT create new files outside these directories.
-After editing src/index.html, copy it to dist/index.html.
-Verify dist/index.html exists before finishing.
+Only edit files inside ${outputDir}/ (src/ and dist/ subdirectories).
+Do NOT create new files outside ${outputDir}/.
+After editing ${outputDir}/src/index.html, copy it to ${outputDir}/dist/index.html.
+Verify ${outputDir}/dist/index.html exists before finishing.
 `.trim()
 }
 
