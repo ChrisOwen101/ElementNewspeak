@@ -25,6 +25,9 @@ RUN pnpm install
 ARG VERSION=docker
 ARG GENERATE_API_URL=http://localhost:3001/generate
 ENV GENERATE_API_URL=$GENERATE_API_URL
+# Limit Node heap to prevent OOM kills on small servers (e.g. 2-4GB Hetzner).
+# Disable Terser parallelism to reduce peak memory during minification.
+ENV NODE_OPTIONS="--max-old-space-size=1536"
 RUN VERSION=$VERSION pnpm --dir apps/web build
 
 # Copy the config now so that we don't create another layer in the app image

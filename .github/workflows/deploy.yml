@@ -70,6 +70,18 @@ jobs:
 
                   echo "[$(date)] Starting deployment..." >> deployment.log
 
+                  # Ensure swap exists — webpack TerserPlugin needs ~2GB during minification
+                  if [ ! -f /swapfile ]; then
+                      echo "Creating 2GB swap file..."
+                      fallocate -l 2G /swapfile
+                      chmod 600 /swapfile
+                      mkswap /swapfile
+                      swapon /swapfile
+                      echo '/swapfile none swap sw 0 0' >> /etc/fstab
+                  elif ! swapon --show | grep -q /swapfile; then
+                      swapon /swapfile 2>/dev/null || true
+                  fi
+
                   # Stop existing Element services only
                   docker compose down --remove-orphans 2>/dev/null || true
                   sleep 3
