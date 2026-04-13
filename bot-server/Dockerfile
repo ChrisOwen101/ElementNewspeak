@@ -32,14 +32,11 @@ WORKDIR /app
 # - curl: for health checks
 # - python3: may be needed by some npm packages
 # - git: required for Claude Code
-RUN apk add --no-cache curl python3 ca-certificates git
+# - bash: required by Claude Code CLI installer
+RUN apk add --no-cache curl python3 ca-certificates git bash
 
-# Download and install Claude Code CLI
-# Claude Code is required to generate components via /generate endpoint
-# The bot-server spawns the 'claude' command to build HTML bundles
-RUN curl -fsSL https://install.anthropic.com/claude-cli | sh || \
-    npm install -g @anthropic-ai/claude-code 2>/dev/null || \
-    echo "Warning: Claude Code installation may need manual setup"
+# Install Claude Code CLI globally via npm (the shell installer requires glibc)
+RUN npm install -g @anthropic-ai/claude-code
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
