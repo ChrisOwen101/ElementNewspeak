@@ -474,6 +474,7 @@
                     <label>Instructions</label>
                     <textarea id="recipeInstructions"></textarea>
                 </div>
+                <div id="recipeFormError" style="display:none; background:#7F1D1D; color:#FCA5A5; padding:10px 14px; border-radius:6px; font-size:14px; margin-top:8px;"></div>
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeAddRecipeModal()">Cancel</button>
                     <button type="submit" class="btn">Add Recipe</button>
@@ -753,6 +754,7 @@
 
         function closeAddRecipeModal() {
             document.getElementById('addRecipeModal').classList.remove('active');
+            clearRecipeFormError();
         }
 
         function addIngredientField() {
@@ -768,31 +770,43 @@
             list.appendChild(div);
         }
 
+        function showRecipeFormError(msg) {
+            const el = document.getElementById('recipeFormError');
+            el.textContent = msg;
+            el.style.display = 'block';
+        }
+
+        function clearRecipeFormError() {
+            const el = document.getElementById('recipeFormError');
+            if (el) { el.textContent = ''; el.style.display = 'none'; }
+        }
+
         function handleAddRecipe(event) {
             event.preventDefault();
+            clearRecipeFormError();
 
             const name = document.getElementById('recipeName').value.trim();
             const description = document.getElementById('recipeDescription').value.trim();
             const servings = parseInt(document.getElementById('recipeServings').value) || 4;
             const instructions = document.getElementById('recipeInstructions').value.trim();
 
-            // Collect ingredients
+            // Collect ingredients — amount is optional, only name is required
             const ingredients = [];
             const ingredientItems = document.querySelectorAll('#ingredientsList .ingredient-item');
             ingredientItems.forEach((item) => {
                 const nameInput = item.querySelector('[data-ing-name]');
                 const amountInput = item.querySelector('[data-ing-amount]');
-                if (nameInput && amountInput) {
+                if (nameInput) {
                     const ingName = nameInput.value.trim();
-                    const ingAmount = amountInput.value.trim();
-                    if (ingName && ingAmount) {
+                    const ingAmount = amountInput ? amountInput.value.trim() : '';
+                    if (ingName) {
                         ingredients.push({ name: ingName, amount: ingAmount });
                     }
                 }
             });
 
             if (ingredients.length === 0) {
-                alert('Please add at least one ingredient');
+                showRecipeFormError('Please add at least one ingredient name.');
                 return;
             }
 

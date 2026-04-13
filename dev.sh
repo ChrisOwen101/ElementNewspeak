@@ -118,11 +118,11 @@ echo ""
 pnpm --filter element-web run start 2>&1 | prefix_output "element-web" '\033[0;34m' &
 WEB_PID=$!
 
-# Generation server (tsx, restarts on file changes) — load root .env,
-# then re-apply the network-accessible URLs so .env doesn't override them.
+# Generation server — run directly with node (no tsx watch/restart).
+# Load root .env, then re-apply the network-accessible URLs so .env doesn't override them.
 (cd "$BOT_DIR" && set -a && source "$ROOT_ENV" && set +a && \
   [[ -n "${LOCAL_IP:-}" ]] && export BUNDLE_BASE_URL="http://${LOCAL_IP}:3001" GENERATE_API_URL="http://${LOCAL_IP}:3001/generate"; \
-  npm run dev 2>&1) | prefix_output "gen-server" '\033[0;35m' &
+  node --import tsx/esm src/index.ts 2>&1) | prefix_output "gen-server" '\033[0;35m' &
 BOT_PID=$!
 
 ok "Element Web       → http://127.0.0.1:8080 (localhost)"

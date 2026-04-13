@@ -210,7 +210,12 @@ export class DynamicRoomStore extends AsyncStoreWithClient<DynamicRoomStoreState
             this.emit("update", roomId)
         } catch (err) {
             logger.error("DynamicRoomStore: Generation failed", err)
-            this.statuses.set(roomId, "error")
+            if (isEdit) {
+                // For edits, keep the current tool visible — just clear the pending state
+                this.statuses.set(roomId, "ready")
+            } else {
+                this.statuses.set(roomId, "error")
+            }
             this.emit("update", roomId)
         }
     }

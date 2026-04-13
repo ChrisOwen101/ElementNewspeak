@@ -57,7 +57,6 @@ COPY --from=builder /app/dist ./dist
 
 # Copy runtime files
 COPY bot-server/component-contract.md ./
-COPY bot-server/.env.example ./.env.example
 
 # Create directories that will be written at runtime
 RUN mkdir -p public/bundles renderer-workspace && \
