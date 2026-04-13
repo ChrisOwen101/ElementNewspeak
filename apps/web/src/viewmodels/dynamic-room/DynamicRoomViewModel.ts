@@ -59,6 +59,8 @@ interface DynamicRoomProps {
 export class DynamicRoomViewModel
     extends BaseViewModel<DynamicRoomSnapshot, DynamicRoomProps>
     implements DynamicRoomActions {
+    private lastGenerationCounter: number
+
     public constructor(props: DynamicRoomProps) {
         const store = DynamicRoomStore.instance
         const renderer = store.getRenderer(props.room.roomId)
@@ -73,6 +75,8 @@ export class DynamicRoomViewModel
             errorMessage: undefined,
             isEditPending: false,
         })
+
+        this.lastGenerationCounter = store.getGenerationCounter()
 
         // Listen for store updates (renderer state / status changes)
         this.disposables.trackListener(DynamicRoomStore.instance, UPDATE_EVENT, this.onStoreUpdate)
@@ -133,15 +137,17 @@ export class DynamicRoomViewModel
         const renderer = store.getRenderer(roomId)
         const status = store.getStatus(roomId)
 
-        // When an edit completes, the store emits with new bundleUrl and status "ready".
-        // Clear isEditPending whenever the bundle URL changes or status leaves "ready".
-        const wasEditPending = this.snapshot.current.isEditPending
-        const bundleUrlChanged = renderer?.bundleUrl !== this.snapshot.current.bundleUrl
+        // Clear isEditPending when the generation counter changes
+        // (meaning a generation completed, whether success or failure)
+        const counterChanged = store.getGenerationCounter() !== this.lastGenerationCounter
+        if (counterChanged) {
+            this.lastGenerationCounter = store.getGenerationCounter()
+        }
 
         this.snapshot.merge({
             rendererStatus: status,
             bundleUrl: renderer?.bundleUrl,
-            isEditPending: wasEditPending && !bundleUrlChanged && status === "ready",
+            isEditPending: counterChanged ? false : this.snapshot.current.isEditPending,
         })
     };
 

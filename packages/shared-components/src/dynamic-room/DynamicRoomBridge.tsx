@@ -97,6 +97,7 @@ export function DynamicRoomBridge({ bundleUrl, messages, roomState, onSendEvent 
 
     return (
         <iframe
+            key={bundleUrl}
             ref={iframeRef}
             src={bundleUrl}
             className={styles.iframe}

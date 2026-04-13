@@ -52,6 +52,9 @@ export class DynamicRoomStore extends AsyncStoreWithClient<DynamicRoomStoreState
     /** Per-room generation status, keyed by roomId */
     private statuses = new Map<string, RendererStatus>();
 
+    /** Incremented each time a generation (new or edit) finishes, so VMs can detect completion */
+    private generationCounter = 0;
+
     private constructor() {
         super(defaultDispatcher, {})
     }
@@ -72,6 +75,13 @@ export class DynamicRoomStore extends AsyncStoreWithClient<DynamicRoomStoreState
      */
     public getStatus(roomId: string): RendererStatus {
         return this.statuses.get(roomId) ?? "none"
+    }
+
+    /**
+     * Returns a counter that increments on every generation completion (success or failure).
+     */
+    public getGenerationCounter(): number {
+        return this.generationCounter
     }
 
     // ─── Lifecycle ──────────────────────────────────────────────────────
@@ -176,6 +186,7 @@ export class DynamicRoomStore extends AsyncStoreWithClient<DynamicRoomStoreState
         }
 
         try {
+            logger.info(`DynamicRoomStore: Sending prompt to ${GENERATE_API_URL} for room ${roomId}`)
             const response = await fetch(GENERATE_API_URL, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -191,31 +202,46 @@ export class DynamicRoomStore extends AsyncStoreWithClient<DynamicRoomStoreState
             const bundleUrl = this.rewriteBundleUrl(rawBundleUrl)
             logger.info(`DynamicRoomStore: Generation complete, bundleUrl=${bundleUrl}`)
 
+            // Preserve the existing displayName for edits
+            const existingRenderer = this.renderers.get(roomId)
+            const displayName = isEdit && existingRenderer
+                ? existingRenderer.displayName
+                : prompt.slice(0, 80)
+
             // Post the renderer state event into the room so other clients see it
-            await this.matrixClient.sendStateEvent(roomId, RENDERER_STATE_EVENT, {
-                bundleUrl,
-                displayName: prompt.slice(0, 80),
-                schemaVersion: "1",
-                schema: { events: [] },
-            } as any, "")
+            logger.info(`DynamicRoomStore: Sending state event to room ${roomId}`)
+            await this.matrixClient.sendStateEvent(
+                roomId,
+                RENDERER_STATE_EVENT as any,
+                {
+                    bundleUrl,
+                    displayName,
+                    schemaVersion: "1",
+                    schema: { events: [] },
+                },
+                "",
+            )
+            logger.info(`DynamicRoomStore: State event sent successfully for room ${roomId}`)
 
             // Update local state immediately (onRoomStateEvent will also fire)
             this.renderers.set(roomId, {
                 bundleUrl,
-                displayName: prompt.slice(0, 80),
+                displayName,
                 schemaVersion: "1",
                 schema: { events: [] },
             })
             this.statuses.set(roomId, "ready")
+            this.generationCounter++
             this.emit("update", roomId)
         } catch (err) {
-            logger.error("DynamicRoomStore: Generation failed", err)
+            logger.error(`DynamicRoomStore: Generation/update failed for room ${roomId}:`, err)
             if (isEdit) {
                 // For edits, keep the current tool visible — just clear the pending state
                 this.statuses.set(roomId, "ready")
             } else {
                 this.statuses.set(roomId, "error")
             }
+            this.generationCounter++
             this.emit("update", roomId)
         }
     }

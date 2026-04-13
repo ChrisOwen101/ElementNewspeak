@@ -32,33 +32,11 @@ jobs:
                   password: ${{ secrets.DOCKER_PASSWORD }}
               if: vars.DOCKER_REGISTRY != ''
 
-            - name: Build Docker images
-              run: |
-                  docker buildx build \
-                    --tag element-web:latest \
-                    -f apps/web/Dockerfile \
-                    --output type=docker \
-                    .
-                  docker buildx build \
-                    --tag dynamic-room-bot:latest \
-                    -f bot-server/Dockerfile \
-                    --output type=docker \
-                    .
-
             - name: Deploy to Hetzner
               env:
                   HETZNER_HOST: ${{ secrets.HETZNER_HOST }}
                   HETZNER_USER: ${{ secrets.HETZNER_USER }}
                   HETZNER_PORT: ${{ secrets.HETZNER_PORT || 22 }}
-                  ELEMENT_WEB_PORT: ${{ secrets.ELEMENT_WEB_PORT || 8080 }}
-                  BUNDLE_PORT: ${{ secrets.BUNDLE_PORT || 3001 }}
-                  BUNDLE_BASE_URL: ${{ secrets.BUNDLE_BASE_URL || 'http://localhost:3001' }}
-                  GENERATE_API_URL: ${{ secrets.GENERATE_API_URL || 'http://localhost:3001/generate' }}
-                  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-                  MATRIX_HOMESERVER_URL: ${{ secrets.MATRIX_HOMESERVER_URL }}
-                  MATRIX_BOT_TOKEN: ${{ secrets.MATRIX_BOT_TOKEN }}
-                  MATRIX_BOT_USER_ID: ${{ secrets.MATRIX_BOT_USER_ID }}
-                  NODE_ENV: production
               run: |
                   mkdir -p ~/.ssh
                   echo "${{ secrets.HETZNER_SSH_KEY }}" > ~/.ssh/deploy_key
@@ -74,53 +52,15 @@ jobs:
                       UserKnownHostsFile /dev/null
                   EOF
 
-                  # Pre-deployment checks
-                  ssh -F ~/.ssh/config hetzner << 'PRE_CHECKS'
-                  echo "[Preflight] Checking Claude Code installation..."
-                  if ! command -v claude &> /dev/null; then
-                      echo "[Preflight] Claude Code not found, installing..."
-                      curl -fsSL https://install.anthropic.com/claude-cli | sh || true
-                  fi
+                  # Copy the full repo to the server for docker compose build
+                  rsync -az --delete \
+                    --exclude=node_modules \
+                    --exclude=.git \
+                    --exclude=.env \
+                    -e "ssh -F ~/.ssh/config" \
+                    ./ hetzner:~/element-web/
 
-                  if command -v claude &> /dev/null; then
-                      echo "[Preflight] ✓ Claude Code available: $(claude --version 2>/dev/null || echo 'version unknown')"
-                  else
-                      echo "[Preflight] ⚠ Claude Code could not be installed"
-                      echo "[Preflight] Bot server will not be able to generate components"
-                  fi
-
-                  PRE_CHECKS
-
-                  # Copy docker-compose.yml and .env to server
-                  scp -F ~/.ssh/config \
-                    docker-compose.yml \
-                    hetzner:~/element-web/docker-compose.yml
-
-                  # Create .env file on server with current secrets
-                  ssh -F ~/.ssh/config hetzner << 'REMOTE_COMMANDS'
-                  cd ~/element-web || mkdir -p ~/element-web && cd ~/element-web
-
-                  # Backup current .env if it exists
-                  if [ -f .env ]; then
-                      cp .env .env.backup.$(date +%s)
-                  fi
-
-                  # Create new .env with current secrets
-                  cat > .env << EOF_ENV
-                  ELEMENT_WEB_PORT=$ELEMENT_WEB_PORT
-                  BUNDLE_PORT=$BUNDLE_PORT
-                  BUNDLE_BASE_URL=$BUNDLE_BASE_URL
-                  GENERATE_API_URL=$GENERATE_API_URL
-                  ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY
-                  MATRIX_HOMESERVER_URL=$MATRIX_HOMESERVER_URL
-                  MATRIX_BOT_TOKEN=$MATRIX_BOT_TOKEN
-                  MATRIX_BOT_USER_ID=$MATRIX_BOT_USER_ID
-                  NODE_ENV=$NODE_ENV
-                  EOF_ENV
-
-                  REMOTE_COMMANDS
-
-            - name: Pull and restart services
+            - name: Build and restart services
               env:
                   HETZNER_HOST: ${{ secrets.HETZNER_HOST }}
                   HETZNER_USER: ${{ secrets.HETZNER_USER }}
@@ -129,30 +69,24 @@ jobs:
                   ssh -F ~/.ssh/config hetzner << 'REMOTE_COMMANDS'
                   cd ~/element-web || exit 1
 
-                  # Log deployment start
                   echo "[$(date)] Starting Element Web deployment..." >> deployment.log
-
-                  # Pull latest images
-                  docker pull element-web:latest || docker build -f Dockerfile.element -t element-web:latest .
-                  docker pull dynamic-room-bot:latest || docker build -f Dockerfile.bot -t dynamic-room-bot:latest .
 
                   # Gracefully stop only Element services (not other containers)
                   echo "[$(date)] Stopping existing Element services..." >> deployment.log
-                  docker-compose down --remove-orphans || true
+                  docker compose down --remove-orphans || true
 
                   # Wait for containers to fully stop
                   sleep 5
 
-                  # Start services with docker-compose
-                  echo "[$(date)] Starting Element services..." >> deployment.log
-                  docker-compose up -d
+                  # Build and start services
+                  echo "[$(date)] Building and starting Element services..." >> deployment.log
+                  docker compose build
+                  docker compose up -d
 
                   # Wait for services to initialize
-                  sleep 10
+                  sleep 15
 
-                  # Check health status
                   echo "[$(date)] Checking service health..." >> deployment.log
-
                   REMOTE_COMMANDS
 
             - name: Health check
@@ -160,49 +94,45 @@ jobs:
                   HETZNER_HOST: ${{ secrets.HETZNER_HOST }}
                   HETZNER_USER: ${{ secrets.HETZNER_USER }}
                   HETZNER_PORT: ${{ secrets.HETZNER_PORT || 22 }}
-                  ELEMENT_WEB_PORT: ${{ secrets.ELEMENT_WEB_PORT || 8080 }}
-                  BUNDLE_PORT: ${{ secrets.BUNDLE_PORT || 3001 }}
               run: |
                   ssh -F ~/.ssh/config hetzner << 'REMOTE_COMMANDS'
                   cd ~/element-web || exit 1
 
                   # Check if containers are running
                   echo "Checking container status..."
-                  docker-compose ps
+                  docker compose ps
 
                   # Verify Element Web is responding
                   echo "Verifying Element Web health..."
-                  if docker exec element-web wget -q --spider http://localhost:8080/config.json; then
+                  if docker exec element-web wget -q --spider http://localhost:8080/config.json\; then
                       echo "✓ Element Web is healthy"
                   else
                       echo "✗ Element Web health check failed"
                       echo "Logs:"
-                      docker-compose logs element-web | tail -50
+                      docker compose logs element-web | tail -50
                       exit 1
                   fi
 
-                  # Verify Bot Server is responding (if available)
+                  # Verify Bot Server is responding
                   echo "Verifying Bot Server health..."
                   if docker exec dynamic-room-bot curl -f http://localhost:3001/health 2>/dev/null; then
                       echo "✓ Bot Server is healthy"
-                      
+
                       # Verify Claude Code is available in bot container
                       echo "Checking Claude Code installation..."
                       if docker exec dynamic-room-bot which claude >/dev/null 2>&1; then
                           echo "✓ Claude Code is available"
                       else
                           echo "⚠ Claude Code may not be available in container"
-                          echo "Bot will not be able to generate components"
                       fi
                   else
-                      echo "⚠ Bot Server health check failed"
+                      echo "✗ Bot Server health check failed"
                       echo "Logs:"
-                      docker-compose logs bot | tail -50
+                      docker compose logs bot | tail -50
                       exit 1
                   fi
 
                   echo "[$(date)] Deployment successful!" >> deployment.log
-
                   REMOTE_COMMANDS
 
             - name: Rollback on failure
@@ -218,18 +148,17 @@ jobs:
                   echo "[$(date)] Deployment failed! Rolling back..." >> deployment.log
 
                   # Stop current services
-                  docker-compose down || true
+                  docker compose down || true
 
                   # Restore from backup if available
-                  if [ -f .env.backup.* ]; then
-                      LATEST_BACKUP=$(ls -t .env.backup.* | head -1)
+                  LATEST_BACKUP=$(ls -t .env.backup.* 2>/dev/null | head -1)
+                  if [ -n "$LATEST_BACKUP" ]; then
                       echo "Restoring from backup: $LATEST_BACKUP"
                       cp "$LATEST_BACKUP" .env
-                      docker-compose up -d
+                      docker compose up -d
                       sleep 10
                       echo "[$(date)] Rollback completed" >> deployment.log
                   fi
-
                   REMOTE_COMMANDS
 
             - name: Notification on success
