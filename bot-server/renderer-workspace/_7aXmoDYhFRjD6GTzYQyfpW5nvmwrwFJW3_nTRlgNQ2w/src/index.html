@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shopping List</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #15191E;
+      --surface:     #1E2329;
+      --surface2:    #252B33;
+      --border:      #2D3440;
+      --accent:      #0DBD8B;
+      --accent-dim:  #0a9b72;
+      --danger:      #E5534B;
+      --danger-dim:  #b93e38;
+      --text:        #F4F4F5;
+      --text-muted:  #8E99A4;
+      --text-faint:  #545F6C;
+      --done-text:   #545F6C;
+      --radius:      8px;
+      --radius-sm:   5px;
+      --font:        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 14px;
+      min-height: 100vh;
+      padding: 16px;
+    }
+
+    #app {
+      max-width: 780px;
+      margin: 0 auto;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .header-icon {
+      font-size: 22px;
+      line-height: 1;
+    }
+    .header h1 {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .header-badge {
+      margin-left: auto;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 2px 9px;
+      border-radius: 12px;
+    }
+
+    /* ── Add-item form ── */
+    .add-form {
+      display: grid;
+      grid-template-columns: 1fr 180px auto;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 520px) {
+      .add-form { grid-template-columns: 1fr; }
+    }
+
+    input, select {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 14px;
+      padding: 8px 11px;
+      outline: none;
+      transition: border-color .15s;
+      width: 100%;
+    }
+    input::placeholder { color: var(--text-faint); }
+    input:focus, select:focus { border-color: var(--accent); }
+    select option { background: var(--surface2); }
+
+    button {
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 500;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      padding: 8px 16px;
+      transition: background .15s, opacity .15s;
+      white-space: nowrap;
+    }
+    button:active { opacity: .85; }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover { background: var(--accent-dim); }
+    .btn-primary:disabled { background: var(--surface2); color: var(--text-faint); cursor: not-allowed; opacity: 1; }
+
+    /* ── Table ── */
+    .table-wrap {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead tr {
+      background: var(--surface2);
+    }
+    thead th {
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      padding: 10px 14px;
+      text-align: left;
+    }
+    thead th.col-done   { width: 42px; text-align: center; }
+    thead th.col-name   { }
+    thead th.col-assign { width: 170px; }
+    thead th.col-qty    { width: 70px; }
+    thead th.col-added  { width: 110px; }
+    thead th.col-action { width: 36px; }
+
+    tbody tr {
+      border-top: 1px solid var(--border);
+      transition: background .1s;
+    }
+    tbody tr:hover { background: var(--surface); }
+    tbody tr.row-done { opacity: .6; }
+
+    td {
+      padding: 10px 14px;
+      vertical-align: middle;
+    }
+    td.col-done { text-align: center; padding: 10px 8px; }
+    td.col-action { text-align: center; padding: 10px 8px; }
+
+    /* Checkbox */
+    .check-wrap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .check-wrap input[type=checkbox] {
+      width: 17px;
+      height: 17px;
+      accent-color: var(--accent);
+      cursor: pointer;
+      padding: 0;
+    }
+
+    /* Item name */
+    .item-name {
+      font-weight: 500;
+      color: var(--text);
+    }
+    .row-done .item-name {
+      text-decoration: line-through;
+      color: var(--done-text);
+    }
+    .item-author {
+      font-size: 11px;
+      color: var(--text-faint);
+      margin-top: 2px;
+    }
+
+    /* Qty badge */
+    .qty-badge {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 2px 7px;
+      display: inline-block;
+    }
+
+    /* Assignee chip */
+    .assignee-select {
+      background: var(--surface2);
+      border-color: var(--border);
+      font-size: 13px;
+      padding: 4px 8px;
+      border-radius: 14px;
+      color: var(--text-muted);
+      cursor: pointer;
+      min-width: 110px;
+    }
+    .assignee-select.assigned {
+      background: rgba(13, 189, 139, .12);
+      border-color: rgba(13, 189, 139, .35);
+      color: var(--accent);
+    }
+
+    /* Delete btn */
+    .btn-delete {
+      background: transparent;
+      color: var(--text-faint);
+      padding: 4px 6px;
+      font-size: 16px;
+      border-radius: var(--radius-sm);
+      line-height: 1;
+    }
+    .btn-delete:hover {
+      background: rgba(229, 83, 75, .15);
+      color: var(--danger);
+    }
+
+    /* ── Empty state ── */
+    .empty {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--text-muted);
+    }
+    .empty-icon { font-size: 40px; margin-bottom: 12px; }
+    .empty h2 { font-size: 16px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+    .empty p  { font-size: 13px; color: var(--text-muted); }
+
+    /* ── Summary bar ── */
+    .summary {
+      display: flex;
+      gap: 16px;
+      margin-top: 14px;
+      font-size: 12px;
+      color: var(--text-faint);
+    }
+    .summary span b { color: var(--text-muted); font-weight: 600; }
+
+    /* Progress bar */
+    .progress-wrap {
+      height: 3px;
+      background: var(--surface2);
+      border-radius: 2px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 2px;
+      transition: width .3s ease;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <p style="color:var(--text-muted);padding:20px;">Connecting…</p>
+</div>
+
+<script>
+  // ── State ─────────────────────────────────────────────────────────────────
+  let currentMembers = [];
+
+  // ── Derive shopping items from Matrix events ───────────────────────────────
+  function deriveItems(messages) {
+    const items = new Map();
+
+    for (const m of messages) {
+      if (m.type === "io.element.shopping.item") {
+        items.set(m.eventId, {
+          id:        m.eventId,
+          name:      m.content.name || "Unnamed item",
+          qty:       m.content.qty  || "",
+          assignee:  m.content.assignee || "",
+          done:      !!m.content.done,
+          deleted:   !!m.content.deleted,
+          author:    m.senderDisplayName || m.sender,
+          timestamp: m.timestamp,
+        });
+      } else if (m.type === "io.element.shopping.item_update") {
+        const target = items.get(m.content.targetEventId);
+        if (target) {
+          items.set(m.content.targetEventId, {
+            ...target,
+            ...(m.content.done      !== undefined && { done:     m.content.done }),
+            ...(m.content.assignee  !== undefined && { assignee: m.content.assignee }),
+            ...(m.content.deleted   !== undefined && { deleted:  m.content.deleted }),
+          });
+        }
+      }
+    }
+
+    return [...items.values()]
+      .filter(i => !i.deleted)
+      .sort((a, b) => {
+        // Undone items first, then by timestamp
+        if (a.done !== b.done) return a.done ? 1 : -1;
+        return a.timestamp - b.timestamp;
+      });
+  }
+
+  // ── Send helpers ───────────────────────────────────────────────────────────
+  function sendEvent(eventType, content) {
+    parent.postMessage({ type: "ACTION_SEND_EVENT", eventType, content }, "*");
+  }
+
+  function addItem(name, qty, assignee) {
+    sendEvent("io.element.shopping.item", { name, qty, assignee, done: false, deleted: false });
+  }
+
+  function toggleDone(id, currentDone) {
+    sendEvent("io.element.shopping.item_update", { targetEventId: id, done: !currentDone });
+  }
+
+  function setAssignee(id, assignee) {
+    sendEvent("io.element.shopping.item_update", { targetEventId: id, assignee });
+  }
+
+  function deleteItem(id) {
+    sendEvent("io.element.shopping.item_update", { targetEventId: id, deleted: true });
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+  function render(messages, roomState) {
+    currentMembers = (roomState && roomState.members) ? roomState.members : [];
+    const items    = deriveItems(messages);
+    const total    = items.length;
+    const doneCount = items.filter(i => i.done).length;
+    const pct      = total ? Math.round((doneCount / total) * 100) : 0;
+
+    const app = document.getElementById("app");
+    app.innerHTML = "";
+
+    // Header
+    const header = document.createElement("div");
+    header.className = "header";
+    header.innerHTML = `
+      <span class="header-icon">🛒</span>
+      <h1>Shopping List</h1>
+      <span class="header-badge">${doneCount}/${total} done</span>
+    `;
+    app.appendChild(header);
+
+    // Progress bar
+    const progWrap = document.createElement("div");
+    progWrap.className = "progress-wrap";
+    progWrap.innerHTML = `<div class="progress-bar" style="width:${pct}%"></div>`;
+    app.appendChild(progWrap);
+
+    // Add form
+    const form = document.createElement("div");
+    form.className = "add-form";
+    form.innerHTML = `
+      <input id="inp-name" type="text" placeholder="Item name…" maxlength="120">
+      <select id="inp-assignee">
+        <option value="">— Assign to —</option>
+        ${currentMembers.map(m =>
+          `<option value="${escHtml(m.userId)}">${escHtml(m.displayName || m.userId)}</option>`
+        ).join("")}
+      </select>
+      <button class="btn-primary" id="btn-add">Add item</button>
+    `;
+    app.appendChild(form);
+
+    // Wire up add button
+    const nameInput     = form.querySelector("#inp-name");
+    const assigneeInput = form.querySelector("#inp-assignee");
+    const addBtn        = form.querySelector("#btn-add");
+
+    function doAdd() {
+      const name = nameInput.value.trim();
+      if (!name) { nameInput.focus(); return; }
+      addItem(name, "", assigneeInput.value);
+      nameInput.value    = "";
+      assigneeInput.value = "";
+      nameInput.focus();
+    }
+
+    addBtn.addEventListener("click", doAdd);
+    nameInput.addEventListener("keydown", e => {
+      if (e.key === "Enter") doAdd();
+    });
+
+    // Empty state
+    if (total === 0) {
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      empty.innerHTML = `
+        <div class="empty-icon">🛍️</div>
+        <h2>Your shopping list is empty</h2>
+        <p>Add your first item above to get started.</p>
+      `;
+      app.appendChild(empty);
+      return;
+    }
+
+    // Table
+    const tableWrap = document.createElement("div");
+    tableWrap.className = "table-wrap";
+
+    const table = document.createElement("table");
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th class="col-done">✓</th>
+          <th class="col-name">Item</th>
+          <th class="col-assign">Assignee</th>
+          <th class="col-added">Added by</th>
+          <th class="col-action"></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    `;
+
+    const tbody = table.querySelector("#tbody");
+
+    for (const item of items) {
+      const tr = document.createElement("tr");
+      if (item.done) tr.classList.add("row-done");
+
+      // Build assignee options HTML
+      const assigneeOptions = currentMembers.map(m => {
+        const sel = item.assignee === m.userId ? "selected" : "";
+        return `<option value="${escHtml(m.userId)}" ${sel}>${escHtml(m.displayName || m.userId)}</option>`;
+      }).join("");
+      const hasAssignee = item.assignee && currentMembers.some(m => m.userId === item.assignee);
+      const assigneeClass = hasAssignee ? "assignee-select assigned" : "assignee-select";
+
+      // Format date
+      const dateStr = formatDate(item.timestamp);
+
+      tr.innerHTML = `
+        <td class="col-done">
+          <label class="check-wrap" title="${item.done ? "Mark as pending" : "Mark as done"}">
+            <input type="checkbox" ${item.done ? "checked" : ""} data-id="${escHtml(item.id)}" data-done="${item.done}">
+          </label>
+        </td>
+        <td class="col-name">
+          <div class="item-name">${escHtml(item.name)}${item.qty ? ` <span style="color:var(--text-faint);font-weight:400;">×${escHtml(item.qty)}</span>` : ""}</div>
+        </td>
+        <td class="col-assign">
+          <select class="${assigneeClass}" data-id="${escHtml(item.id)}">
+            <option value="">— Unassigned —</option>
+            ${assigneeOptions}
+          </select>
+        </td>
+        <td class="col-added">
+          <span style="font-size:12px;color:var(--text-faint);">${escHtml(item.author)}</span>
+          <div style="font-size:11px;color:var(--text-faint);margin-top:2px;">${dateStr}</div>
+        </td>
+        <td class="col-action">
+          <button class="btn-delete" title="Remove item" data-id="${escHtml(item.id)}">✕</button>
+        </td>
+      `;
+
+      tbody.appendChild(tr);
+    }
+
+    table.addEventListener("change", e => {
+      const el = e.target;
+      if (el.type === "checkbox") {
+        const id   = el.dataset.id;
+        const done = el.dataset.done === "true";
+        toggleDone(id, done);
+      } else if (el.tagName === "SELECT" && el.dataset.id) {
+        setAssignee(el.dataset.id, el.value);
+      }
+    });
+
+    table.addEventListener("click", e => {
+      const btn = e.target.closest(".btn-delete");
+      if (btn) deleteItem(btn.dataset.id);
+    });
+
+    tableWrap.appendChild(table);
+    app.appendChild(tableWrap);
+
+    // Summary
+    const summary = document.createElement("div");
+    summary.className = "summary";
+    summary.innerHTML = `
+      <span><b>${total}</b> item${total !== 1 ? "s" : ""}</span>
+      <span><b>${doneCount}</b> done</span>
+      <span><b>${total - doneCount}</b> remaining</span>
+    `;
+    app.appendChild(summary);
+  }
+
+  // ── Utils ──────────────────────────────────────────────────────────────────
+  function escHtml(str) {
+    return String(str ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function formatDate(ts) {
+    if (!ts) return "";
+    const d = new Date(ts);
+    const now = new Date();
+    const diffMs = now - d;
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1)  return "just now";
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffH = Math.floor(diffMin / 60);
+    if (diffH < 24)  return `${diffH}h ago`;
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  }
+
+  // ── Bootstrap ──────────────────────────────────────────────────────────────
+  window.addEventListener("message", event => {
+    if (event.data && event.data.type === "ROOM_DATA") {
+      const { messages = [], roomState = {} } = event.data;
+      render(messages, roomState);
+    }
+  });
+
+  // Render initial empty state so the UI is shown immediately
+  render([], { members: [] });
+</script>
+</body>
+</html>

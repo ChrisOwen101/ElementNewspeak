@@ -63,8 +63,12 @@ kill_port() {
         sleep 0.5
     fi
 }
+# Source .env early so we can read BUNDLE_PORT for kill_port and URL overrides
+set -a && source "$ROOT_ENV" 2>/dev/null && set +a || true
+BUNDLE_PORT="${BUNDLE_PORT:-3001}"
+
 kill_port 8080
-kill_port 3001
+kill_port "$BUNDLE_PORT"
 
 # Kill stale nx processes that can block the dev server
 stale_nx="$(pgrep -f 'nx (start|run)' 2>/dev/null || true)"
@@ -102,8 +106,8 @@ log "Installing bot-server dependencies..."
 # ── 3b. Detect local network IP and export service URLs ───────────────────────
 LOCAL_IP="$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || ifconfig | grep 'inet ' | grep -v '127.0.0.1' | awk '{print $2}' | head -1)"
 if [[ -n "$LOCAL_IP" ]]; then
-    export BUNDLE_BASE_URL="http://${LOCAL_IP}:3001"
-    export GENERATE_API_URL="http://${LOCAL_IP}:3001/generate"
+    export BUNDLE_BASE_URL="http://${LOCAL_IP}:${BUNDLE_PORT}"
+    export GENERATE_API_URL="http://${LOCAL_IP}:${BUNDLE_PORT}/generate"
     ok "Detected network IP: ${LOCAL_IP}"
     ok "Services will be accessible to others on your network"
 else
@@ -121,14 +125,14 @@ WEB_PID=$!
 # Generation server — run directly with node (no tsx watch/restart).
 # Load root .env, then re-apply the network-accessible URLs so .env doesn't override them.
 (cd "$BOT_DIR" && set -a && source "$ROOT_ENV" && set +a && \
-  [[ -n "${LOCAL_IP:-}" ]] && export BUNDLE_BASE_URL="http://${LOCAL_IP}:3001" GENERATE_API_URL="http://${LOCAL_IP}:3001/generate"; \
+  [[ -n "${LOCAL_IP:-}" ]] && export BUNDLE_BASE_URL="http://${LOCAL_IP}:${BUNDLE_PORT}" GENERATE_API_URL="http://${LOCAL_IP}:${BUNDLE_PORT}/generate"; \
   node --import tsx/esm src/index.ts 2>&1) | prefix_output "gen-server" '\033[0;35m' &
 BOT_PID=$!
 
 ok "Element Web       → http://127.0.0.1:8080 (localhost)"
 [[ -n "$LOCAL_IP" ]] && ok "Element Web       → http://${LOCAL_IP}:8080 (network)"
-ok "Generation server → http://localhost:3001"
-[[ -n "$LOCAL_IP" ]] && ok "Generation server → http://${LOCAL_IP}:3001 (network)"
+ok "Generation server → http://localhost:${BUNDLE_PORT}"
+[[ -n "$LOCAL_IP" ]] && ok "Generation server → http://${LOCAL_IP}:${BUNDLE_PORT} (network)"
 ok "Press Ctrl+C to stop both services."
 echo ""
 

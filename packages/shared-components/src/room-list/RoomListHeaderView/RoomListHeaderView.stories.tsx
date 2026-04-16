@@ -5,25 +5,26 @@
  * Please see LICENSE files in the repository root for full details.
  */
 
-import React, { type JSX } from "react";
-import { fn } from "storybook/test";
+import React, { type JSX } from "react"
+import { fn } from "storybook/test"
 
-import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite"
 import {
     RoomListHeaderView,
     type RoomListHeaderViewActions,
     type RoomListHeaderViewSnapshot,
-} from "./RoomListHeaderView";
-import { useMockedViewModel } from "../../viewmodel";
-import { withViewDocs } from "../../../.storybook/withViewDocs";
-import { defaultSnapshot } from "./default-snapshot";
+} from "./RoomListHeaderView"
+import { useMockedViewModel } from "../../viewmodel"
+import { withViewDocs } from "../../../.storybook/withViewDocs"
+import { defaultSnapshot } from "./default-snapshot"
 
-type RoomListHeaderProps = RoomListHeaderViewSnapshot & RoomListHeaderViewActions;
+type RoomListHeaderProps = RoomListHeaderViewSnapshot & RoomListHeaderViewActions
 
 const RoomListHeaderViewWrapperImpl = ({
     createChatRoom,
     createRoom,
     createVideoRoom,
+    createToolRoom,
     openSpaceHome,
     openSpaceSettings,
     inviteInSpace,
@@ -36,16 +37,17 @@ const RoomListHeaderViewWrapperImpl = ({
         createChatRoom,
         createRoom,
         createVideoRoom,
+        createToolRoom,
         openSpaceHome,
         openSpaceSettings,
         inviteInSpace,
         sort,
         openSpacePreferences,
         toggleMessagePreview,
-    });
-    return <RoomListHeaderView vm={vm} />;
-};
-const RoomListHeaderViewWrapper = withViewDocs(RoomListHeaderViewWrapperImpl, RoomListHeaderView);
+    })
+    return <RoomListHeaderView vm={vm} />
+}
+const RoomListHeaderViewWrapper = withViewDocs(RoomListHeaderViewWrapperImpl, RoomListHeaderView)
 
 const meta = {
     title: "Room List/RoomListHeaderView",
@@ -56,6 +58,7 @@ const meta = {
         createChatRoom: fn(),
         createRoom: fn(),
         createVideoRoom: fn(),
+        createToolRoom: fn(),
         openSpaceHome: fn(),
         openSpaceSettings: fn(),
         inviteInSpace: fn(),
@@ -69,24 +72,24 @@ const meta = {
             url: "https://www.figma.com/design/vlmt46QDdE4dgXDiyBJXqp/ER-33-Left-Panel?node-id=2925-19173",
         },
     },
-} satisfies Meta<typeof RoomListHeaderViewWrapper>;
+} satisfies Meta<typeof RoomListHeaderViewWrapper>
 
-export default meta;
-type Story = StoryObj<typeof meta>;
+export default meta
+type Story = StoryObj<typeof meta>
 
-export const Default: Story = {};
+export const Default: Story = {}
 
 export const NoSpaceMenu: Story = {
     args: {
         displaySpaceMenu: false,
     },
-};
+}
 
 export const NoComposeMenu: Story = {
     args: {
         displayComposeMenu: false,
     },
-};
+}
 
 export const LongTitle: Story = {
     decorators: [
@@ -99,4 +102,4 @@ export const LongTitle: Story = {
     args: {
         title: "Loooooooooooooooooooooooooooooooooooooong title",
     },
-};
+}

@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Magical Animals Kanban</title>
+  <style>
+    :root {
+      --bg:            #15191E;
+      --surface:       #1E2328;
+      --surface-hover: #252B33;
+      --border:        #2A3038;
+      --text:          #F4F4F5;
+      --text-muted:    #8B9399;
+      --col-1: #7C3AED; /* purple  - Rumored    */
+      --col-2: #0EA5E9; /* sky     - Sighted    */
+      --col-3: #10B981; /* emerald - Encountered*/
+      --col-4: #F59E0B; /* amber   - Befriended */
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Header ─────────────────────────────────────────── */
+    .header {
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(135deg,
+        rgba(124,58,237,.12) 0%,
+        rgba(14,165,233,.06) 50%,
+        rgba(16,185,129,.04) 100%);
+      flex-shrink: 0;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-title {
+      font-size: 17px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #a855f7, #38bdf8, #34d399);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header-room {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .add-btn {
+      background: linear-gradient(135deg, #7C3AED, #0EA5E9);
+      border: none;
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: opacity .18s, transform .18s;
+      flex-shrink: 0;
+    }
+    .add-btn:hover { opacity: .85; transform: translateY(-1px); }
+    .add-btn:active { transform: translateY(0); }
+
+    /* ── Board ───────────────────────────────────────────── */
+    .board {
+      display: flex;
+      gap: 14px;
+      padding: 16px 20px 20px;
+      flex: 1;
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+
+    /* ── Column ──────────────────────────────────────────── */
+    .column {
+      width: 270px;
+      min-width: 270px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      max-height: 100%;
+    }
+
+    .col-header {
+      padding: 13px 14px 12px;
+      border-bottom: 1px solid var(--border);
+      border-radius: 12px 12px 0 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .col-header-1 { background: linear-gradient(135deg,rgba(124,58,237,.22),transparent); border-top: 3px solid var(--col-1); }
+    .col-header-2 { background: linear-gradient(135deg,rgba(14,165,233,.22),transparent); border-top: 3px solid var(--col-2); }
+    .col-header-3 { background: linear-gradient(135deg,rgba(16,185,129,.22),transparent); border-top: 3px solid var(--col-3); }
+    .col-header-4 { background: linear-gradient(135deg,rgba(245,158,11,.22),transparent); border-top: 3px solid var(--col-4); }
+
+    .col-title {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .col-badge {
+      background: rgba(255,255,255,.1);
+      color: var(--text-muted);
+      border-radius: 20px;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .col-body {
+      padding: 10px;
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      min-height: 60px;
+      transition: background .15s;
+    }
+    .col-body.drag-over {
+      background: rgba(255,255,255,.04);
+      border-radius: 0 0 11px 11px;
+    }
+
+    /* ── Card ────────────────────────────────────────────── */
+    .card {
+      background: #252B33;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 13px 13px 11px;
+      cursor: grab;
+      position: relative;
+      transition: transform .15s, box-shadow .15s, border-color .15s;
+      animation: card-in .22s ease-out;
+    }
+    .card:hover {
+      border-color: rgba(255,255,255,.14);
+      box-shadow: 0 6px 24px rgba(0,0,0,.35);
+      transform: translateY(-2px);
+    }
+    .card:active { cursor: grabbing; }
+    .card.dragging { opacity: .45; transform: scale(.97); }
+
+    @keyframes card-in {
+      from { opacity: 0; transform: translateY(7px) scale(.97); }
+      to   { opacity: 1; transform: translateY(0)  scale(1);   }
+    }
+
+    .card-emoji { font-size: 30px; display: block; margin-bottom: 7px; line-height: 1; }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 5px;
+      line-height: 1.35;
+      padding-right: 36px; /* room for action buttons */
+    }
+
+    .card-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      line-height: 1.55;
+    }
+
+    .card-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .card-author {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      overflow: hidden;
+    }
+    .card-author-avatar {
+      width: 17px;
+      height: 17px;
+      border-radius: 50%;
+      background: linear-gradient(135deg,#7C3AED,#0EA5E9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      color: #fff;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .card-author-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 110px;
+    }
+
+    /* Hover actions */
+    .card-actions {
+      position: absolute;
+      top: 9px;
+      right: 9px;
+      display: none;
+      gap: 3px;
+    }
+    .card:hover .card-actions { display: flex; }
+
+    .act-btn {
+      background: rgba(255,255,255,.08);
+      border: none;
+      border-radius: 5px;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 3px 6px;
+      font-size: 13px;
+      line-height: 1;
+      transition: background .14s, color .14s;
+    }
+    .act-btn:hover { background: rgba(255,255,255,.15); color: var(--text); }
+    .act-btn.del:hover { background: rgba(239,68,68,.2); color: #ef4444; }
+
+    /* ── Empty state ─────────────────────────────────────── */
+    .empty {
+      text-align: center;
+      padding: 28px 12px;
+      color: var(--text-muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .empty-icon { font-size: 28px; opacity: .35; margin-bottom: 7px; }
+
+    /* ── Modal ───────────────────────────────────────────── */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.72);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      backdrop-filter: blur(5px);
+      animation: overlay-in .18s ease;
+    }
+    @keyframes overlay-in { from { opacity:0; } to { opacity:1; } }
+
+    .modal {
+      background: #1A1F26;
+      border: 1px solid #32393F;
+      border-radius: 14px;
+      padding: 22px;
+      width: 390px;
+      max-width: 92vw;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 24px 64px rgba(0,0,0,.55);
+      animation: modal-in .2s ease;
+    }
+    @keyframes modal-in {
+      from { opacity:0; transform:translateY(10px) scale(.97); }
+      to   { opacity:1; transform:translateY(0) scale(1); }
+    }
+
+    .modal-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .form-group { margin-bottom: 14px; }
+
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    .form-input,
+    .form-select,
+    .form-textarea {
+      width: 100%;
+      background: #252B33;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 9px 11px;
+      font-size: 14px;
+      font-family: inherit;
+      transition: border-color .18s, box-shadow .18s;
+    }
+    .form-input:focus,
+    .form-select:focus,
+    .form-textarea:focus {
+      outline: none;
+      border-color: #7C3AED;
+      box-shadow: 0 0 0 3px rgba(124,58,237,.18);
+    }
+    .form-input.error { border-color: #ef4444; }
+    .form-textarea { resize: vertical; min-height: 72px; }
+    .form-select option { background: #252B33; }
+
+    /* Emoji grid */
+    .emoji-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 5px;
+      margin-top: 6px;
+    }
+    .emoji-opt {
+      background: #252B33;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      padding: 7px 4px;
+      font-size: 21px;
+      cursor: pointer;
+      text-align: center;
+      transition: border-color .13s, background .13s;
+    }
+    .emoji-opt:hover { background: #2E3640; }
+    .emoji-opt.sel { border-color: #7C3AED; background: rgba(124,58,237,.14); }
+
+    .modal-footer {
+      display: flex;
+      gap: 9px;
+      justify-content: flex-end;
+      margin-top: 18px;
+    }
+
+    .btn {
+      padding: 9px 18px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      transition: opacity .18s, transform .15s;
+    }
+    .btn:hover { opacity: .85; transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn-primary { background: linear-gradient(135deg,#7C3AED,#0EA5E9); color:#fff; }
+    .btn-ghost   { background: rgba(255,255,255,.07); color: var(--text-muted); }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar { width:5px; height:5px; }
+    ::-webkit-scrollbar-track { background:transparent; }
+    ::-webkit-scrollbar-thumb { background:rgba(255,255,255,.1); border-radius:3px; }
+    ::-webkit-scrollbar-thumb:hover { background:rgba(255,255,255,.2); }
+  </style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+  // ── Constants ─────────────────────────────────────────────────────────────
+
+  const COLUMNS = [
+    { id: 'rumored',     label: 'Rumored',     emoji: '🔮', cls: 'col-header-1', hint: 'Just a legend...'     },
+    { id: 'sighted',     label: 'Sighted',     emoji: '👁️', cls: 'col-header-2', hint: 'Spotted in the wild'  },
+    { id: 'encountered', label: 'Encountered', emoji: '✨', cls: 'col-header-3', hint: 'Up close & personal'   },
+    { id: 'befriended',  label: 'Befriended',  emoji: '⭐', cls: 'col-header-4', hint: 'Bonded forever'        },
+  ];
+
+  const EMOJIS = [
+    '🦄','🐉','🦋','🦅','🐺','🧜','🦁','🦊','🐲','🦚',
+    '🦕','🦌','🦩','🐦‍🔥','🐬','🦈','🐘','🦂','🦋','🐉',
+  ];
+
+  const EV_CARD   = 'io.element.magickanban.card';
+  const EV_UPDATE = 'io.element.magickanban.card_update';
+
+  // ── State ─────────────────────────────────────────────────────────────────
+
+  let _messages   = [];
+  let _roomState  = { roomName: '', members: [] };
+  let _modal      = false;
+  let _selEmoji   = EMOJIS[0];
+  let _dragging   = null;
+
+  // ── Derive cards from event stream ────────────────────────────────────────
+
+  function getCards(messages) {
+    const map = new Map();
+    for (const m of messages) {
+      if (m.type === EV_CARD) {
+        map.set(m.eventId, {
+          id:          m.eventId,
+          title:       m.content.title       || 'Unnamed Creature',
+          description: m.content.description || '',
+          emoji:       m.content.emoji       || '🦄',
+          column:      m.content.column      || 'rumored',
+          author:      m.senderDisplayName   || m.sender || 'Unknown',
+          timestamp:   m.timestamp,
+        });
+      } else if (m.type === EV_UPDATE) {
+        const base = map.get(m.content.targetEventId);
+        if (base) {
+          map.set(m.content.targetEventId, {
+            ...base,
+            ...(m.content.column !== undefined      ? { column:      m.content.column      } : {}),
+            ...(m.content.title  !== undefined      ? { title:       m.content.title       } : {}),
+            ...(m.content.description !== undefined ? { description: m.content.description } : {}),
+          });
+        }
+      }
+    }
+    // Filter out deleted cards and sort by creation time
+    return [...map.values()]
+      .filter(c => c.column !== '__deleted__')
+      .sort((a, b) => a.timestamp - b.timestamp);
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────
+
+  function render(messages, roomState) {
+    _messages  = messages;
+    _roomState = roomState;
+
+    const cards = getCards(messages);
+    const byCol = {};
+    COLUMNS.forEach(c => (byCol[c.id] = []));
+    cards.forEach(card => {
+      if (byCol[card.column]) byCol[card.column].push(card);
+    });
+
+    document.getElementById('app').innerHTML = buildApp(byCol, roomState);
+    bindEvents();
+  }
+
+  function buildApp(byCol, roomState) {
+    return `
+      <div style="display:flex;flex-direction:column;height:100vh;overflow:hidden;">
+        <div class="header">
+          <div class="header-left">
+            <span style="font-size:22px">🌟</span>
+            <div>
+              <div class="header-title">Magical Animals Kanban</div>
+              ${roomState.roomName ? `<div class="header-room">${esc(roomState.roomName)}</div>` : ''}
+            </div>
+          </div>
+          <button class="add-btn" id="open-modal-btn">
+            <span>✨</span> Add Creature
+          </button>
+        </div>
+        <div class="board">
+          ${COLUMNS.map(col => buildColumn(col, byCol[col.id] || [])).join('')}
+        </div>
+      </div>
+      ${_modal ? buildModal() : ''}
+    `;
+  }
+
+  function buildColumn(col, cards) {
+    const cardHTML = cards.length
+      ? cards.map(c => buildCard(c, cards)).join('')
+      : `<div class="empty">
+           <div class="empty-icon">${col.emoji}</div>
+           <div>${col.hint}</div>
+         </div>`;
+    return `
+      <div class="column">
+        <div class="col-header ${col.cls}">
+          <div class="col-title">
+            <span>${col.emoji}</span>
+            <span>${col.label}</span>
+          </div>
+          <span class="col-badge">${cards.length}</span>
+        </div>
+        <div class="col-body"
+             id="col-${col.id}"
+             data-col="${col.id}"
+             ondragover="onDragOver(event,'${col.id}')"
+             ondragleave="onDragLeave(event)"
+             ondrop="onDrop(event,'${col.id}')">
+          ${cardHTML}
+        </div>
+      </div>
+    `;
+  }
+
+  function buildCard(card, allCards) {
+    const ci = COLUMNS.findIndex(c => c.id === card.column);
+    const canL = ci > 0;
+    const canR = ci < COLUMNS.length - 1;
+    return `
+      <div class="card"
+           id="card-${card.id}"
+           data-id="${card.id}"
+           draggable="true"
+           ondragstart="onDragStart(event,'${card.id}')"
+           ondragend="onDragEnd(event)">
+        <div class="card-actions">
+          ${canL ? `<button class="act-btn" title="Move left"  onclick="moveCard('${card.id}','${COLUMNS[ci-1].id}')">←</button>` : ''}
+          ${canR ? `<button class="act-btn" title="Move right" onclick="moveCard('${card.id}','${COLUMNS[ci+1].id}')">→</button>` : ''}
+          <button class="act-btn del" title="Remove" onclick="deleteCard('${card.id}')">✕</button>
+        </div>
+        <span class="card-emoji">${card.emoji}</span>
+        <div class="card-title">${esc(card.title)}</div>
+        ${card.description ? `<div class="card-desc">${esc(card.description)}</div>` : ''}
+        <div class="card-meta">
+          <div class="card-author">
+            <div class="card-author-avatar">${esc(card.author.charAt(0).toUpperCase())}</div>
+            <span class="card-author-name">${esc(card.author)}</span>
+          </div>
+          <span>${fmtDate(card.timestamp)}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function buildModal() {
+    return `
+      <div class="overlay" id="modal-overlay">
+        <div class="modal">
+          <div class="modal-title"><span>✨</span> Add Magical Creature</div>
+
+          <div class="form-group">
+            <label class="form-label">Creature Name</label>
+            <input id="f-name" class="form-input" type="text"
+                   placeholder="e.g. Azure Moondragon" autofocus />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Description</label>
+            <textarea id="f-desc" class="form-textarea"
+                      placeholder="What makes this creature special?"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Starting Column</label>
+            <select id="f-col" class="form-select">
+              ${COLUMNS.map(c => `<option value="${c.id}">${c.emoji} ${c.label}</option>`).join('')}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Choose an Emoji</label>
+            <div class="emoji-grid" id="emoji-grid">
+              ${EMOJIS.map((e, i) => `
+                <div class="emoji-opt${e === _selEmoji ? ' sel' : ''}"
+                     data-emoji="${e}"
+                     onclick="pickEmoji(this,'${e}')">
+                  ${e}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn btn-ghost" id="cancel-btn">Cancel</button>
+            <button class="btn btn-primary" id="submit-btn">Add Creature ✨</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // ── Event binding ─────────────────────────────────────────────────────────
+
+  function bindEvents() {
+    const openBtn = document.getElementById('open-modal-btn');
+    if (openBtn) openBtn.addEventListener('click', openModal);
+
+    const cancelBtn = document.getElementById('cancel-btn');
+    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+
+    const submitBtn = document.getElementById('submit-btn');
+    if (submitBtn) submitBtn.addEventListener('click', submitCard);
+
+    const overlay = document.getElementById('modal-overlay');
+    if (overlay) overlay.addEventListener('click', e => {
+      if (e.target === overlay) closeModal();
+    });
+
+    const nameInput = document.getElementById('f-name');
+    if (nameInput) nameInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') submitCard();
+      if (e.key === 'Escape') closeModal();
+    });
+  }
+
+  // ── Modal ─────────────────────────────────────────────────────────────────
+
+  function openModal() {
+    _modal = true;
+    _selEmoji = EMOJIS[0];
+    render(_messages, _roomState);
+    const input = document.getElementById('f-name');
+    if (input) input.focus();
+  }
+
+  function closeModal() {
+    _modal = false;
+    render(_messages, _roomState);
+  }
+
+  function pickEmoji(el, emoji) {
+    _selEmoji = emoji;
+    document.querySelectorAll('.emoji-opt').forEach(e => e.classList.remove('sel'));
+    el.classList.add('sel');
+  }
+
+  function submitCard() {
+    const nameEl = document.getElementById('f-name');
+    const descEl = document.getElementById('f-desc');
+    const colEl  = document.getElementById('f-col');
+    const name   = (nameEl ? nameEl.value : '').trim();
+
+    if (!name) {
+      if (nameEl) { nameEl.classList.add('error'); nameEl.focus(); }
+      return;
+    }
+
+    parent.postMessage({
+      type:      'ACTION_SEND_EVENT',
+      eventType: EV_CARD,
+      content: {
+        title:       name,
+        description: descEl ? descEl.value.trim() : '',
+        emoji:       _selEmoji,
+        column:      colEl ? colEl.value : 'rumored',
+      },
+    }, '*');
+
+    closeModal();
+  }
+
+  // ── Card actions ──────────────────────────────────────────────────────────
+
+  function moveCard(cardId, newCol) {
+    parent.postMessage({
+      type:      'ACTION_SEND_EVENT',
+      eventType: EV_UPDATE,
+      content:   { targetEventId: cardId, column: newCol },
+    }, '*');
+  }
+
+  function deleteCard(cardId) {
+    parent.postMessage({
+      type:      'ACTION_SEND_EVENT',
+      eventType: EV_UPDATE,
+      content:   { targetEventId: cardId, column: '__deleted__' },
+    }, '*');
+  }
+
+  // ── Drag & drop ───────────────────────────────────────────────────────────
+
+  function onDragStart(event, cardId) {
+    _dragging = cardId;
+    event.dataTransfer.effectAllowed = 'move';
+    requestAnimationFrame(() => {
+      const el = document.getElementById('card-' + cardId);
+      if (el) el.classList.add('dragging');
+    });
+  }
+
+  function onDragEnd(event) {
+    if (_dragging) {
+      const el = document.getElementById('card-' + _dragging);
+      if (el) el.classList.remove('dragging');
+    }
+    document.querySelectorAll('.col-body').forEach(c => c.classList.remove('drag-over'));
+    _dragging = null;
+  }
+
+  function onDragOver(event, colId) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    document.querySelectorAll('.col-body').forEach(c => c.classList.remove('drag-over'));
+    const el = document.getElementById('col-' + colId);
+    if (el) el.classList.add('drag-over');
+  }
+
+  function onDragLeave(event) {
+    if (!event.currentTarget.contains(event.relatedTarget)) {
+      event.currentTarget.classList.remove('drag-over');
+    }
+  }
+
+  function onDrop(event, colId) {
+    event.preventDefault();
+    if (_dragging) {
+      const cards = getCards(_messages);
+      const card  = cards.find(c => c.id === _dragging);
+      if (card && card.column !== colId) moveCard(_dragging, colId);
+    }
+    document.querySelectorAll('.col-body').forEach(c => c.classList.remove('drag-over'));
+    _dragging = null;
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
+  function esc(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function fmtDate(ts) {
+    if (!ts) return '';
+    return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+
+  // ── Matrix data bridge ────────────────────────────────────────────────────
+
+  window.addEventListener('message', event => {
+    if (event.data && event.data.type === 'ROOM_DATA') {
+      render(event.data.messages   || [],
+             event.data.roomState  || {});
+    }
+  });
+
+  // Initial render (empty state)
+  render([], { roomName: '', members: [] });
+</script>
+</body>
+</html>

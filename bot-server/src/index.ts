@@ -57,7 +57,7 @@ async function generate(roomId: string, userPrompt: string): Promise<string> {
         "--system-prompt", systemPrompt,
         "--dangerously-skip-permissions",
         "--output-format", "json",
-        "--max-turns", "20",
+        "--max-turns", "200",
     ]
 
     await new Promise<void>((resolve, reject) => {
@@ -78,8 +78,8 @@ async function generate(roomId: string, userPrompt: string): Promise<string> {
 
         const timer = setTimeout(() => {
             child.kill("SIGTERM")
-            reject(new Error("Claude Code timed out after 5 minutes"))
-        }, 300_000)
+            reject(new Error("Claude Code timed out after 30 minutes"))
+        }, 1_800_000)
 
         child.on("close", (code) => {
             clearTimeout(timer)

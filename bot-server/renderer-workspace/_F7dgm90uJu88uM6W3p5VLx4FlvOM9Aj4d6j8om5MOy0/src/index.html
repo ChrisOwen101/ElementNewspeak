@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pong</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: #15191E;
+            color: #F4F4F5;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        #app {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 10px;
+        }
+
+        .title {
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 5px;
+            color: #0DBD8B;
+            text-transform: uppercase;
+        }
+
+        #pong-canvas {
+            display: block;
+            border-radius: 6px;
+            max-width: 100%;
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 16px;
+            font-size: 11px;
+            color: #555;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .controls-row .key {
+            background: #1E252D;
+            color: #888;
+            border: 1px solid #2D3748;
+            border-radius: 3px;
+            padding: 1px 5px;
+            font-size: 11px;
+            font-family: monospace;
+        }
+
+        .history-row {
+            font-size: 11px;
+            color: #444;
+            min-height: 16px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <div class="title">PONG</div>
+    <canvas id="pong-canvas" width="640" height="400"></canvas>
+    <div class="controls-row">
+        <span>Left: <span class="key">W</span> <span class="key">S</span></span>
+        <span style="color:#2D3748">·</span>
+        <span>Right: <span class="key">↑</span> <span class="key">↓</span></span>
+        <span style="color:#2D3748">·</span>
+        <span><span class="key">Space</span> Start / Restart</span>
+        <span style="color:#2D3748">·</span>
+        <span>First to 7 wins</span>
+    </div>
+    <div class="history-row" id="history"></div>
+</div>
+
+<script>
+    // ── Game constants ──────────────────────────────────────────
+    const GW = 640, GH = 400;
+    const PW = 12, PH = 80;
+    const BALL_R = 7;
+    const PSPEED = 6;
+    const WIN_SCORE = 7;
+    const INITIAL_SPEED = 5;
+    const MAX_SPEED = 14;
+
+    // ── State ───────────────────────────────────────────────────
+    let matrixMessages = [];
+    let game = null;
+    let keys = {};
+
+    // ── Canvas setup ────────────────────────────────────────────
+    const canvas = document.getElementById('pong-canvas');
+    const ctx = canvas.getContext('2d');
+
+    // ── Matrix helpers ──────────────────────────────────────────
+    function getHistory(messages) {
+        return messages.filter(m => m.type === 'io.element.pong.score');
+    }
+
+    function updateHistoryEl(messages) {
+        const el = document.getElementById('history');
+        if (!el) return;
+        const history = getHistory(messages);
+        if (history.length === 0) { el.textContent = ''; return; }
+
+        const recent = history.slice(-8);
+        const dots = recent.map(h => {
+            const color = h.content.scorer === 'left' ? '#0DBD8B' : '#7C3AED';
+            const arrow = h.content.scorer === 'left' ? '◀' : '▶';
+            return `<span style="color:${color}">${arrow}</span>`;
+        }).join(' ');
+
+        const leftTotal  = history.filter(h => h.content.scorer === 'left').length;
+        const rightTotal = history.filter(h => h.content.scorer === 'right').length;
+        el.innerHTML = `All-time: <span style="color:#0DBD8B">${leftTotal}</span> – <span style="color:#7C3AED">${rightTotal}</span> &nbsp;|&nbsp; Recent: ${dots}`;
+    }
+
+    function sendScore(scorer) {
+        parent.postMessage({
+            type: 'ACTION_SEND_EVENT',
+            eventType: 'io.element.pong.score',
+            content: { scorer }
+        }, '*');
+    }
+
+    // ── Game logic ──────────────────────────────────────────────
+    function makeBall(dir) {
+        const angle = (Math.random() * 50 - 25) * (Math.PI / 180);
+        return {
+            x: GW / 2,
+            y: GH / 2,
+            vx: dir * INITIAL_SPEED * Math.cos(angle),
+            vy: INITIAL_SPEED * Math.sin(angle)
+        };
+    }
+
+    function initGame() {
+        return {
+            ball:   makeBall(Math.random() > 0.5 ? 1 : -1),
+            leftY:  GH / 2 - PH / 2,
+            rightY: GH / 2 - PH / 2,
+            scoreL: 0,
+            scoreR: 0,
+            state:  'playing'   // 'playing' | 'won'
+        };
+    }
+
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+    function update() {
+        if (!game || game.state !== 'playing') return;
+
+        // Move paddles
+        if (keys['w'] || keys['W'])      game.leftY  = clamp(game.leftY  - PSPEED, 0, GH - PH);
+        if (keys['s'] || keys['S'])      game.leftY  = clamp(game.leftY  + PSPEED, 0, GH - PH);
+        if (keys['ArrowUp'])             game.rightY = clamp(game.rightY - PSPEED, 0, GH - PH);
+        if (keys['ArrowDown'])           game.rightY = clamp(game.rightY + PSPEED, 0, GH - PH);
+
+        // Move ball
+        const b = game.ball;
+        b.x += b.vx;
+        b.y += b.vy;
+
+        // Top / bottom walls
+        if (b.y - BALL_R < 0)  { b.y = BALL_R;       b.vy =  Math.abs(b.vy); }
+        if (b.y + BALL_R > GH) { b.y = GH - BALL_R;  b.vy = -Math.abs(b.vy); }
+
+        // Left paddle collision  (paddle sits at x=10, width PW)
+        const leftEdge = 10 + PW;
+        if (b.vx < 0 && b.x - BALL_R <= leftEdge && b.x >= 10) {
+            if (b.y + BALL_R >= game.leftY && b.y - BALL_R <= game.leftY + PH) {
+                const rel   = (b.y - (game.leftY + PH / 2)) / (PH / 2);
+                const angle = rel * 55 * (Math.PI / 180);
+                const speed = clamp(Math.hypot(b.vx, b.vy) * 1.04, INITIAL_SPEED, MAX_SPEED);
+                b.vx = speed * Math.cos(angle);
+                b.vy = speed * Math.sin(angle);
+                b.x  = leftEdge + BALL_R + 1;
+            }
+        }
+
+        // Right paddle collision  (paddle sits at x = GW-10-PW)
+        const rightEdge = GW - 10 - PW;
+        if (b.vx > 0 && b.x + BALL_R >= rightEdge && b.x <= GW - 10) {
+            if (b.y + BALL_R >= game.rightY && b.y - BALL_R <= game.rightY + PH) {
+                const rel   = (b.y - (game.rightY + PH / 2)) / (PH / 2);
+                const angle = rel * 55 * (Math.PI / 180);
+                const speed = clamp(Math.hypot(b.vx, b.vy) * 1.04, INITIAL_SPEED, MAX_SPEED);
+                b.vx = -speed * Math.cos(angle);
+                b.vy =  speed * Math.sin(angle);
+                b.x  = rightEdge - BALL_R - 1;
+            }
+        }
+
+        // Ball exits left → right scores
+        if (b.x + BALL_R < 0) {
+            game.scoreR++;
+            sendScore('right');
+            if (game.scoreR >= WIN_SCORE) { game.state = 'won'; }
+            else { game.ball = makeBall(1); }
+        }
+
+        // Ball exits right → left scores
+        if (b.x - BALL_R > GW) {
+            game.scoreL++;
+            sendScore('left');
+            if (game.scoreL >= WIN_SCORE) { game.state = 'won'; }
+            else { game.ball = makeBall(-1); }
+        }
+    }
+
+    // ── Rendering ───────────────────────────────────────────────
+    function drawRoundRect(x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.arcTo(x + w, y,     x + w, y + r,     r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+        ctx.lineTo(x + r, y + h);
+        ctx.arcTo(x,     y + h, x,     y + h - r, r);
+        ctx.lineTo(x,     y + r);
+        ctx.arcTo(x,     y,     x + r, y,         r);
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    function draw() {
+        // Background
+        ctx.fillStyle = '#0D1117';
+        ctx.fillRect(0, 0, GW, GH);
+
+        // Center dashed line
+        ctx.save();
+        ctx.setLineDash([8, 8]);
+        ctx.strokeStyle = '#1E2733';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(GW / 2, 0);
+        ctx.lineTo(GW / 2, GH);
+        ctx.stroke();
+        ctx.restore();
+
+        if (!game) {
+            // Start / idle screen
+            ctx.fillStyle = '#F4F4F5';
+            ctx.font = 'bold 26px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('Press Space to Start', GW / 2, GH / 2 - 14);
+            ctx.font = '15px sans-serif';
+            ctx.fillStyle = '#444';
+            ctx.fillText('Two players · same keyboard', GW / 2, GH / 2 + 18);
+            return;
+        }
+
+        // ── Paddles ──
+        ctx.fillStyle = '#0DBD8B';
+        drawRoundRect(10, game.leftY, PW, PH, 4);
+        drawRoundRect(GW - 10 - PW, game.rightY, PW, PH, 4);
+
+        // ── Ball ──
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(game.ball.x, game.ball.y, BALL_R, 0, Math.PI * 2);
+        ctx.fill();
+
+        // ── Score ──
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 42px monospace';
+
+        // Left score
+        ctx.fillStyle = game.scoreL > 0 ? '#0DBD8B' : '#2D3748';
+        ctx.fillText(game.scoreL, GW / 2 - 70, 52);
+
+        // Right score
+        ctx.fillStyle = game.scoreR > 0 ? '#7C3AED' : '#2D3748';
+        ctx.fillText(game.scoreR, GW / 2 + 70, 52);
+
+        // Separator
+        ctx.fillStyle = '#2D3748';
+        ctx.font = 'bold 28px monospace';
+        ctx.fillText(':', GW / 2, 50);
+
+        // ── Win overlay ──
+        if (game.state === 'won') {
+            ctx.fillStyle = 'rgba(13, 17, 23, 0.82)';
+            ctx.fillRect(0, 0, GW, GH);
+
+            const isLeft = game.scoreL >= WIN_SCORE;
+            ctx.fillStyle = isLeft ? '#0DBD8B' : '#7C3AED';
+            ctx.font = 'bold 32px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${isLeft ? 'Left' : 'Right'} Player Wins!`, GW / 2, GH / 2 - 22);
+
+            ctx.font = 'bold 22px monospace';
+            ctx.fillStyle = '#F4F4F5';
+            ctx.fillText(`${game.scoreL}  :  ${game.scoreR}`, GW / 2, GH / 2 + 14);
+
+            ctx.font = '14px sans-serif';
+            ctx.fillStyle = '#555';
+            ctx.fillText('Press Space to play again', GW / 2, GH / 2 + 46);
+        }
+    }
+
+    function loop() {
+        update();
+        draw();
+        requestAnimationFrame(loop);
+    }
+
+    // ── Keyboard ────────────────────────────────────────────────
+    window.addEventListener('keydown', (e) => {
+        keys[e.key] = true;
+        if (['ArrowUp', 'ArrowDown', ' '].includes(e.key)) e.preventDefault();
+        if (e.key === ' ') {
+            if (!game || game.state === 'won') game = initGame();
+        }
+    });
+
+    window.addEventListener('keyup', (e) => {
+        keys[e.key] = false;
+    });
+
+    // ── Matrix bridge ────────────────────────────────────────────
+    window.addEventListener('message', (event) => {
+        if (event.data.type === 'ROOM_DATA') {
+            matrixMessages = event.data.messages || [];
+            updateHistoryEl(matrixMessages);
+        }
+    });
+
+    // ── Boot ─────────────────────────────────────────────────────
+    loop();
+</script>
+</body>
+</html>

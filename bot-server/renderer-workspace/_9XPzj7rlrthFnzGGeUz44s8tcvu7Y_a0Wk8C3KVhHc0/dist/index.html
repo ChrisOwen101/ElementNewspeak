@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Countdown Timers</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #15191E;
+      color: #F4F4F5;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    #app {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 20px 16px 32px;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-icon {
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .header-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #F4F4F5;
+      letter-spacing: -0.3px;
+    }
+
+    .header-sub {
+      font-size: 12px;
+      color: #71717A;
+      margin-top: 1px;
+    }
+
+    .btn-add {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #2563EB;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      white-space: nowrap;
+    }
+
+    .btn-add:hover { background: #1D4ED8; }
+    .btn-add:active { transform: scale(0.97); }
+
+    /* ── Add Form ── */
+    .add-form-wrap {
+      background: #1C2128;
+      border: 1px solid #2D3748;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+      animation: slideDown 0.18s ease;
+    }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .form-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #A1A1AA;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 14px;
+    }
+
+    .form-row {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .form-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: #A1A1AA;
+    }
+
+    .form-input {
+      background: #15191E;
+      border: 1px solid #2D3748;
+      border-radius: 7px;
+      padding: 9px 12px;
+      color: #F4F4F5;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+      width: 100%;
+    }
+
+    .form-input:focus { border-color: #2563EB; }
+    .form-input::placeholder { color: #52525B; }
+
+    /* datetime-local light-mode fix */
+    .form-input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+      filter: invert(1) opacity(0.5);
+      cursor: pointer;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 4px;
+    }
+
+    .btn-cancel {
+      background: transparent;
+      border: 1px solid #2D3748;
+      border-radius: 7px;
+      color: #A1A1AA;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .btn-cancel:hover { border-color: #52525B; color: #F4F4F5; }
+
+    .btn-submit {
+      background: #2563EB;
+      border: none;
+      border-radius: 7px;
+      color: #fff;
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-submit:hover { background: #1D4ED8; }
+    .btn-submit:disabled { background: #1E3A5F; color: #4B6FA8; cursor: not-allowed; }
+
+    /* ── Empty State ── */
+    .empty-state {
+      text-align: center;
+      padding: 56px 24px;
+      color: #52525B;
+    }
+
+    .empty-icon {
+      font-size: 48px;
+      margin-bottom: 14px;
+      opacity: 0.5;
+    }
+
+    .empty-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #71717A;
+      margin-bottom: 6px;
+    }
+
+    .empty-sub {
+      font-size: 13px;
+      color: #52525B;
+      line-height: 1.5;
+    }
+
+    /* ── Timer Cards ── */
+    .timers-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .timer-card {
+      background: #1C2128;
+      border: 1px solid #2D3748;
+      border-radius: 12px;
+      padding: 18px 20px;
+      transition: border-color 0.15s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .timer-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: var(--accent, #2563EB);
+      border-radius: 3px 0 0 3px;
+    }
+
+    .timer-card:hover { border-color: #3D4D63; }
+
+    .timer-card.expired {
+      --accent: #52525B;
+      opacity: 0.7;
+    }
+
+    .timer-card.expiring-soon { --accent: #F59E0B; }
+    .timer-card.active       { --accent: #2563EB; }
+
+    .timer-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      gap: 12px;
+    }
+
+    .timer-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: #F4F4F5;
+      line-height: 1.3;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .timer-card.expired .timer-name {
+      color: #71717A;
+      text-decoration: line-through;
+    }
+
+    .expired-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #27272A;
+      color: #71717A;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+
+    .btn-delete {
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      color: #52525B;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      font-size: 14px;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+
+    .btn-delete:hover {
+      background: #2D1A1A;
+      color: #F87171;
+      border-color: #3D2020;
+    }
+
+    /* ── Countdown Digits ── */
+    .countdown-grid {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 14px;
+    }
+
+    .countdown-unit {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+    }
+
+    .countdown-value {
+      font-size: clamp(26px, 5vw, 36px);
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum";
+      letter-spacing: -1px;
+      color: var(--accent, #2563EB);
+      line-height: 1;
+      min-width: 2ch;
+      text-align: center;
+    }
+
+    .timer-card.expired .countdown-value { color: #52525B; }
+
+    .countdown-label {
+      font-size: 10px;
+      font-weight: 500;
+      color: #52525B;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-top: 4px;
+    }
+
+    .countdown-sep {
+      font-size: 24px;
+      font-weight: 700;
+      color: #2D3748;
+      margin-bottom: 14px;
+      flex-shrink: 0;
+      align-self: flex-start;
+      padding-top: 4px;
+    }
+
+    /* ── Timer Footer ── */
+    .timer-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .timer-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .timer-date {
+      font-size: 12px;
+      color: #71717A;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .timer-author {
+      font-size: 12px;
+      color: #52525B;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .dot-sep {
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: #3F3F46;
+    }
+
+    /* ── Progress Bar ── */
+    .progress-bar-wrap {
+      height: 3px;
+      background: #2D3748;
+      border-radius: 2px;
+      margin-bottom: 14px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--accent, #2563EB);
+      border-radius: 2px;
+      transition: width 1s linear;
+    }
+
+    /* ── Sections ── */
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #52525B;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 10px;
+      margin-top: 4px;
+    }
+
+    .section-gap { margin-top: 20px; }
+  </style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+  let _messages = [];
+  let _roomState = { roomName: '', members: [] };
+  let _showForm = false;
+  let _tickTimer = null;
+
+  // ── Data helpers ──────────────────────────────────────────
+
+  function getTimers(messages) {
+    const timers = new Map();
+    const deleted = new Set();
+
+    for (const m of messages) {
+      if (m.type === 'io.element.countdown.timer') {
+        timers.set(m.eventId, {
+          id: m.eventId,
+          title: m.content.title || 'Untitled Timer',
+          targetTimestamp: m.content.targetTimestamp,
+          createdAt: m.timestamp,
+          author: m.senderDisplayName || m.sender || 'Unknown',
+        });
+      } else if (m.type === 'io.element.countdown.timer_delete') {
+        if (m.content && m.content.targetEventId) {
+          deleted.add(m.content.targetEventId);
+        }
+      }
+    }
+
+    for (const id of deleted) timers.delete(id);
+
+    return [...timers.values()].sort((a, b) => a.targetTimestamp - b.targetTimestamp);
+  }
+
+  function computeCountdown(targetTimestamp) {
+    const diff = targetTimestamp - Date.now();
+    if (diff <= 0) return { expired: true, days: 0, hours: 0, minutes: 0, seconds: 0, diff: 0 };
+    const totalSec = Math.floor(diff / 1000);
+    return {
+      expired: false,
+      days:    Math.floor(totalSec / 86400),
+      hours:   Math.floor((totalSec % 86400) / 3600),
+      minutes: Math.floor((totalSec % 3600) / 60),
+      seconds: totalSec % 60,
+      diff,
+    };
+  }
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function formatDate(ts) {
+    const d = new Date(ts);
+    return d.toLocaleString(undefined, {
+      month: 'short', day: 'numeric', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
+  }
+
+  // ── Render ───────────────────────────────────────────────
+
+  function render(messages, roomState) {
+    _messages = messages || [];
+    _roomState = roomState || { roomName: '', members: [] };
+    draw();
+  }
+
+  function draw() {
+    const timers = getTimers(_messages);
+    const app = document.getElementById('app');
+    if (!app) return;
+
+    const active  = timers.filter(t => !computeCountdown(t.targetTimestamp).expired);
+    const expired = timers.filter(t =>  computeCountdown(t.targetTimestamp).expired);
+
+    app.innerHTML = `
+      <div class="header">
+        <div class="header-left">
+          <span class="header-icon">⏱</span>
+          <div>
+            <div class="header-title">Countdown Timers</div>
+            <div class="header-sub">${timers.length === 0
+              ? 'No timers yet'
+              : `${active.length} active · ${expired.length} expired`}</div>
+          </div>
+        </div>
+        <button class="btn-add" onclick="toggleForm()">
+          ${_showForm ? '✕ Cancel' : '＋ New Timer'}
+        </button>
+      </div>
+
+      ${_showForm ? renderForm() : ''}
+
+      ${timers.length === 0 && !_showForm ? renderEmpty() : ''}
+
+      ${active.length > 0 ? `
+        ${timers.length > 0 ? `<div class="section-label">Active</div>` : ''}
+        <div class="timers-list">
+          ${active.map(t => renderCard(t)).join('')}
+        </div>
+      ` : ''}
+
+      ${expired.length > 0 ? `
+        <div class="section-gap"></div>
+        <div class="section-label">Expired</div>
+        <div class="timers-list">
+          ${expired.map(t => renderCard(t)).join('')}
+        </div>
+      ` : ''}
+    `;
+  }
+
+  function renderEmpty() {
+    return `
+      <div class="empty-state">
+        <div class="empty-icon">⏳</div>
+        <div class="empty-title">No timers yet</div>
+        <div class="empty-sub">Create a countdown timer to track deadlines,<br>events, or anything time-sensitive.</div>
+      </div>
+    `;
+  }
+
+  function renderForm() {
+    // Default to 24 hours from now
+    const defaultDate = new Date(Date.now() + 86400000);
+    const pad2 = n => String(n).padStart(2, '0');
+    const localDefault =
+      `${defaultDate.getFullYear()}-${pad2(defaultDate.getMonth()+1)}-${pad2(defaultDate.getDate())}` +
+      `T${pad2(defaultDate.getHours())}:${pad2(defaultDate.getMinutes())}`;
+
+    return `
+      <div class="add-form-wrap">
+        <div class="form-title">New Timer</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="timer-title">Title</label>
+            <input
+              class="form-input"
+              id="timer-title"
+              type="text"
+              placeholder="e.g. Product launch, Deadline…"
+              maxlength="80"
+              autocomplete="off"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="timer-target">Target date &amp; time</label>
+            <input
+              class="form-input"
+              id="timer-target"
+              type="datetime-local"
+              value="${localDefault}"
+            />
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-cancel" onclick="toggleForm()">Cancel</button>
+          <button class="btn-submit" onclick="submitTimer()">Start Timer</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderCard(timer) {
+    const cd = computeCountdown(timer.targetTimestamp);
+    const isExpired = cd.expired;
+
+    let cardClass = 'timer-card ';
+    if (isExpired) {
+      cardClass += 'expired';
+    } else if (cd.diff < 3600000) { // < 1 hour
+      cardClass += 'expiring-soon';
+    } else {
+      cardClass += 'active';
+    }
+
+    // Progress: compare created → now → target
+    const total = timer.targetTimestamp - timer.createdAt;
+    const elapsed = Date.now() - timer.createdAt;
+    const pct = total > 0 ? Math.min(100, Math.max(0, (elapsed / total) * 100)) : 100;
+
+    const topRight = isExpired
+      ? `<span class="expired-badge">✓ Expired</span>`
+      : `<button class="btn-delete" onclick="deleteTimer('${timer.id}')" title="Delete timer">✕</button>`;
+
+    return `
+      <div class="${cardClass}" data-timer-id="${escHtml(timer.id)}">
+        <div class="timer-top">
+          <div class="timer-name" title="${escHtml(timer.title)}">${escHtml(timer.title)}</div>
+          ${topRight}
+        </div>
+
+        ${!isExpired ? `
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-fill" style="width:${pct.toFixed(2)}%"></div>
+          </div>
+        ` : ''}
+
+        <div class="countdown-grid">
+          <div class="countdown-unit">
+            <div class="countdown-value">${isExpired ? '00' : String(cd.days)}</div>
+            <div class="countdown-label">Days</div>
+          </div>
+          <div class="countdown-sep">:</div>
+          <div class="countdown-unit">
+            <div class="countdown-value">${pad(isExpired ? 0 : cd.hours)}</div>
+            <div class="countdown-label">Hours</div>
+          </div>
+          <div class="countdown-sep">:</div>
+          <div class="countdown-unit">
+            <div class="countdown-value">${pad(isExpired ? 0 : cd.minutes)}</div>
+            <div class="countdown-label">Mins</div>
+          </div>
+          <div class="countdown-sep">:</div>
+          <div class="countdown-unit">
+            <div class="countdown-value">${pad(isExpired ? 0 : cd.seconds)}</div>
+            <div class="countdown-label">Secs</div>
+          </div>
+        </div>
+
+        <div class="timer-footer">
+          <div class="timer-meta">
+            <span class="timer-date">🗓 ${formatDate(timer.targetTimestamp)}</span>
+            <span class="dot-sep"></span>
+            <span class="timer-author">by ${escHtml(timer.author)}</span>
+          </div>
+          ${isExpired ? `
+            <button class="btn-delete" onclick="deleteTimer('${timer.id}')" title="Remove">Remove</button>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // ── Actions ──────────────────────────────────────────────
+
+  function toggleForm() {
+    _showForm = !_showForm;
+    draw();
+    if (_showForm) {
+      setTimeout(() => {
+        const el = document.getElementById('timer-title');
+        if (el) el.focus();
+      }, 50);
+    }
+  }
+
+  function submitTimer() {
+    const titleEl  = document.getElementById('timer-title');
+    const targetEl = document.getElementById('timer-target');
+    if (!titleEl || !targetEl) return;
+
+    const title = titleEl.value.trim();
+    const targetVal = targetEl.value;
+
+    if (!title) {
+      titleEl.focus();
+      titleEl.style.borderColor = '#F87171';
+      setTimeout(() => { titleEl.style.borderColor = ''; }, 1500);
+      return;
+    }
+
+    if (!targetVal) {
+      targetEl.focus();
+      targetEl.style.borderColor = '#F87171';
+      setTimeout(() => { targetEl.style.borderColor = ''; }, 1500);
+      return;
+    }
+
+    const targetTimestamp = new Date(targetVal).getTime();
+    if (isNaN(targetTimestamp) || targetTimestamp <= Date.now()) {
+      targetEl.focus();
+      targetEl.style.borderColor = '#F87171';
+      setTimeout(() => { targetEl.style.borderColor = ''; }, 1500);
+      return;
+    }
+
+    parent.postMessage({
+      type: 'ACTION_SEND_EVENT',
+      eventType: 'io.element.countdown.timer',
+      content: { title, targetTimestamp },
+    }, '*');
+
+    _showForm = false;
+    draw();
+  }
+
+  function deleteTimer(eventId) {
+    parent.postMessage({
+      type: 'ACTION_SEND_EVENT',
+      eventType: 'io.element.countdown.timer_delete',
+      content: { targetEventId: eventId },
+    }, '*');
+  }
+
+  // ── In-place tick (avoids re-rendering the form) ─────────
+
+  function getCardEl(timerId) {
+    // Iterate rather than use CSS attribute selector to avoid escaping issues
+    // with special characters in Matrix event IDs (e.g. "$", ":")
+    const cards = document.querySelectorAll('.timer-card[data-timer-id]');
+    for (const card of cards) {
+      if (card.dataset.timerId === timerId) return card;
+    }
+    return null;
+  }
+
+  function tick() {
+    const timers = getTimers(_messages);
+
+    for (const timer of timers) {
+      const cd = computeCountdown(timer.targetTimestamp);
+      const card = getCardEl(timer.id);
+
+      // If the card element doesn't exist yet, fall back to a full redraw
+      if (!card) { draw(); return; }
+
+      // If expiry / urgency class has changed, we need a full redraw
+      const wasExpired      = card.classList.contains('expired');
+      const wasExpiringSoon = card.classList.contains('expiring-soon');
+      const isExpiringSoon  = !cd.expired && cd.diff < 3600000;
+
+      if (cd.expired !== wasExpired || isExpiringSoon !== wasExpiringSoon) {
+        draw();
+        return;
+      }
+
+      // Update the four countdown digit cells in-place
+      if (!cd.expired) {
+        const values = card.querySelectorAll('.countdown-value');
+        if (values.length >= 4) {
+          values[0].textContent = String(cd.days);
+          values[1].textContent = pad(cd.hours);
+          values[2].textContent = pad(cd.minutes);
+          values[3].textContent = pad(cd.seconds);
+        }
+
+        // Update progress bar width in-place
+        const prog = card.querySelector('.progress-bar-fill');
+        if (prog) {
+          const total   = timer.targetTimestamp - timer.createdAt;
+          const elapsed = Date.now() - timer.createdAt;
+          const pct     = total > 0 ? Math.min(100, Math.max(0, (elapsed / total) * 100)) : 100;
+          prog.style.width = `${pct.toFixed(2)}%`;
+        }
+      }
+    }
+  }
+
+  // ── Bridge ───────────────────────────────────────────────
+
+  window.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'ROOM_DATA') {
+      render(event.data.messages, event.data.roomState);
+    }
+  });
+
+  // Tick every second — updates countdown digits in-place so the form is
+  // never torn down and re-built (which caused the visible flash/reset).
+  _tickTimer = setInterval(tick, 1000);
+
+  // Initial render (empty state until ROOM_DATA arrives)
+  draw();
+</script>
+</body>
+</html>

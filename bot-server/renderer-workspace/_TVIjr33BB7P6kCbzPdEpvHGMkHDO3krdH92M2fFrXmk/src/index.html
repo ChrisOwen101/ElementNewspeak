@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pong — Two Player</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #15191E;
+      color: #F4F4F5;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      user-select: none;
+      overflow: hidden;
+    }
+
+    #app {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+    }
+
+    h1 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #a1a1aa;
+    }
+
+    /* Scoreboard */
+    #scoreboard {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      font-size: 1rem;
+    }
+
+    .player-score {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .player-label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #71717a;
+    }
+
+    .score-val {
+      font-size: 2rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+
+    #p1-label { color: #60a5fa; }
+    #p2-label { color: #f87171; }
+    #p1-score { color: #60a5fa; }
+    #p2-score { color: #f87171; }
+
+    .score-sep {
+      font-size: 1.8rem;
+      font-weight: 300;
+      color: #3f3f46;
+      line-height: 1;
+      margin-top: 18px;
+    }
+
+    /* Canvas wrapper */
+    #canvas-wrap {
+      position: relative;
+      border: 2px solid #27272a;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #0d1117;
+      box-shadow: 0 0 40px rgba(0,0,0,0.6);
+    }
+
+    canvas {
+      display: block;
+    }
+
+    /* Overlay screens */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      background: rgba(13,17,23,0.88);
+      backdrop-filter: blur(2px);
+    }
+
+    .overlay h2 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+    }
+
+    .overlay p {
+      font-size: 0.8rem;
+      color: #a1a1aa;
+      text-align: center;
+      line-height: 1.6;
+      max-width: 280px;
+    }
+
+    .btn {
+      padding: 10px 28px;
+      border-radius: 6px;
+      border: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+    }
+    .btn:hover  { opacity: 0.88; transform: translateY(-1px); }
+    .btn:active { opacity: 0.75; transform: translateY(0); }
+
+    .btn-primary { background: #3b82f6; color: #fff; }
+    .btn-danger  { background: #ef4444; color: #fff; }
+
+    .winner-text {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+    .winner-p1 { color: #60a5fa; }
+    .winner-p2 { color: #f87171; }
+
+    /* Controls hint */
+    #controls {
+      display: flex;
+      gap: 32px;
+      font-size: 0.7rem;
+      color: #52525b;
+    }
+    .ctrl-group { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .ctrl-group span:first-child { color: #71717a; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+    .keys { display: flex; gap: 4px; }
+    kbd {
+      background: #27272a;
+      border: 1px solid #3f3f46;
+      border-radius: 3px;
+      padding: 1px 5px;
+      font-size: 0.65rem;
+      font-family: inherit;
+      color: #a1a1aa;
+    }
+
+    /* Recent scores log */
+    #history {
+      width: 100%;
+      max-width: 540px;
+      max-height: 90px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .hist-row {
+      display: flex;
+      gap: 8px;
+      align-items: baseline;
+      font-size: 0.68rem;
+      color: #52525b;
+      padding: 1px 4px;
+    }
+    .hist-row .who { font-weight: 600; }
+    .hist-row .who-p1 { color: #3b82f6; }
+    .hist-row .who-p2 { color: #ef4444; }
+    .hist-row time { font-size: 0.6rem; color: #3f3f46; margin-left: auto; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <h1>Pong</h1>
+
+  <div id="scoreboard">
+    <div class="player-score">
+      <span class="player-label" id="p1-label">Player 1</span>
+      <span class="score-val" id="p1-score">0</span>
+    </div>
+    <span class="score-sep">:</span>
+    <div class="player-score">
+      <span class="player-label" id="p2-label">Player 2</span>
+      <span class="score-val" id="p2-score">0</span>
+    </div>
+  </div>
+
+  <div id="canvas-wrap">
+    <canvas id="pong" width="540" height="340"></canvas>
+
+    <!-- Start overlay -->
+    <div class="overlay" id="overlay-start">
+      <h2>🏓 Pong</h2>
+      <p>First to <strong>7 points</strong> wins.<br>
+         Player 1 uses <kbd>W</kbd>/<kbd>S</kbd>, Player 2 uses <kbd>↑</kbd>/<kbd>↓</kbd>.</p>
+      <button class="btn btn-primary" id="btn-start">Start Game</button>
+    </div>
+
+    <!-- Game-over overlay -->
+    <div class="overlay" id="overlay-gameover" style="display:none;">
+      <h2 id="winner-msg">Player 1 Wins!</h2>
+      <p id="gameover-scores"></p>
+      <button class="btn btn-primary" id="btn-rematch">Play Again</button>
+    </div>
+
+    <!-- Point-scored flash -->
+    <div class="overlay" id="overlay-point" style="display:none; pointer-events:none;">
+      <h2 id="point-msg" style="font-size:1.2rem;"></h2>
+    </div>
+  </div>
+
+  <div id="controls">
+    <div class="ctrl-group">
+      <span>Player 1</span>
+      <div class="keys"><kbd>W</kbd> <kbd>S</kbd></div>
+    </div>
+    <div class="ctrl-group">
+      <span>Player 2</span>
+      <div class="keys"><kbd>↑</kbd> <kbd>↓</kbd></div>
+    </div>
+  </div>
+
+  <div id="history"></div>
+</div>
+
+<script>
+// ─── Constants ────────────────────────────────────────────────────────────────
+const W = 540, H = 340;
+const PAD_W = 10, PAD_H = 60, PAD_SPEED = 5;
+const BALL_SIZE = 10;
+const WIN_SCORE = 7;
+const POINT_FLASH_MS = 900;
+
+const EVENT_SCORE  = "io.element.pong.score";
+const EVENT_RESULT = "io.element.pong.result";
+
+// ─── Room data state ──────────────────────────────────────────────────────────
+let roomState = { roomName: "Pong", members: [] };
+let allMessages = [];
+
+// ─── Game state ───────────────────────────────────────────────────────────────
+const GS = {
+  running: false,
+  paused: false,   // briefly after a point
+  p1: { y: H/2 - PAD_H/2, score: 0, name: "Player 1" },
+  p2: { y: H/2 - PAD_H/2, score: 0, name: "Player 2" },
+  ball: { x: W/2, y: H/2, vx: 0, vy: 0 },
+};
+
+const keys = {};
+
+function resetBall(scorer) {
+  GS.ball.x = W / 2;
+  GS.ball.y = H / 2;
+  const speed = 3.8;
+  const angle = (Math.random() * 0.5 - 0.25) * Math.PI;
+  const dir = scorer === 1 ? 1 : -1;
+  GS.ball.vx = Math.cos(angle) * speed * dir;
+  GS.ball.vy = Math.sin(angle) * speed;
+}
+
+function startGame() {
+  GS.p1.score = 0;
+  GS.p2.score = 0;
+  GS.p1.y = H/2 - PAD_H/2;
+  GS.p2.y = H/2 - PAD_H/2;
+  GS.running = true;
+  GS.paused = false;
+  resetBall(Math.random() < 0.5 ? 1 : 2);
+  hide("overlay-start");
+  hide("overlay-gameover");
+  hide("overlay-point");
+  renderScoreboard();
+}
+
+// ─── Canvas drawing ───────────────────────────────────────────────────────────
+const canvas = document.getElementById("pong");
+const ctx = canvas.getContext("2d");
+
+function drawRect(x, y, w, h, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(x, y, w, h);
+}
+
+function drawCircle(x, y, r, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawDashedCenter() {
+  ctx.setLineDash([8, 8]);
+  ctx.strokeStyle = "#27272a";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(W/2, 0);
+  ctx.lineTo(W/2, H);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function draw() {
+  // Background
+  ctx.fillStyle = "#0d1117";
+  ctx.fillRect(0, 0, W, H);
+
+  drawDashedCenter();
+
+  // Paddles
+  const P1_X = 16;
+  const P2_X = W - 16 - PAD_W;
+  drawRect(P1_X, GS.p1.y, PAD_W, PAD_H, "#60a5fa");
+  drawRect(P2_X, GS.p2.y, PAD_W, PAD_H, "#f87171");
+
+  // Ball
+  if (GS.running) {
+    drawCircle(GS.ball.x, GS.ball.y, BALL_SIZE / 2, "#F4F4F5");
+  }
+}
+
+// ─── Physics update ───────────────────────────────────────────────────────────
+function update() {
+  if (!GS.running || GS.paused) return;
+
+  // Move paddles
+  const P1_X = 16;
+  const P2_X = W - 16 - PAD_W;
+
+  if (keys["w"] || keys["W"]) GS.p1.y = Math.max(0, GS.p1.y - PAD_SPEED);
+  if (keys["s"] || keys["S"]) GS.p1.y = Math.min(H - PAD_H, GS.p1.y + PAD_SPEED);
+  if (keys["ArrowUp"])   GS.p2.y = Math.max(0, GS.p2.y - PAD_SPEED);
+  if (keys["ArrowDown"]) GS.p2.y = Math.min(H - PAD_H, GS.p2.y + PAD_SPEED);
+
+  // Move ball
+  GS.ball.x += GS.ball.vx;
+  GS.ball.y += GS.ball.vy;
+
+  const r = BALL_SIZE / 2;
+
+  // Top / bottom wall bounce
+  if (GS.ball.y - r <= 0) {
+    GS.ball.y = r;
+    GS.ball.vy = Math.abs(GS.ball.vy);
+  } else if (GS.ball.y + r >= H) {
+    GS.ball.y = H - r;
+    GS.ball.vy = -Math.abs(GS.ball.vy);
+  }
+
+  // P1 paddle collision (left)
+  if (GS.ball.vx < 0
+      && GS.ball.x - r <= P1_X + PAD_W
+      && GS.ball.x - r >= P1_X
+      && GS.ball.y + r >= GS.p1.y
+      && GS.ball.y - r <= GS.p1.y + PAD_H) {
+    GS.ball.x = P1_X + PAD_W + r;
+    const hitPos = (GS.ball.y - (GS.p1.y + PAD_H / 2)) / (PAD_H / 2);
+    const angle = hitPos * (Math.PI / 3.5);
+    const speed = Math.min(Math.sqrt(GS.ball.vx**2 + GS.ball.vy**2) * 1.04, 10);
+    GS.ball.vx =  Math.cos(angle) * speed;
+    GS.ball.vy =  Math.sin(angle) * speed;
+  }
+
+  // P2 paddle collision (right)
+  if (GS.ball.vx > 0
+      && GS.ball.x + r >= P2_X
+      && GS.ball.x + r <= P2_X + PAD_W
+      && GS.ball.y + r >= GS.p2.y
+      && GS.ball.y - r <= GS.p2.y + PAD_H) {
+    GS.ball.x = P2_X - r;
+    const hitPos = (GS.ball.y - (GS.p2.y + PAD_H / 2)) / (PAD_H / 2);
+    const angle = hitPos * (Math.PI / 3.5);
+    const speed = Math.min(Math.sqrt(GS.ball.vx**2 + GS.ball.vy**2) * 1.04, 10);
+    GS.ball.vx = -Math.cos(angle) * speed;
+    GS.ball.vy =  Math.sin(angle) * speed;
+  }
+
+  // Ball out of bounds — score point
+  if (GS.ball.x < -20) {
+    pointScored(2);
+  } else if (GS.ball.x > W + 20) {
+    pointScored(1);
+  }
+}
+
+// ─── Scoring ──────────────────────────────────────────────────────────────────
+function pointScored(scorer) {
+  if (!GS.running || GS.paused) return;
+  GS.paused = true;
+
+  if (scorer === 1) GS.p1.score++;
+  else              GS.p2.score++;
+
+  renderScoreboard();
+
+  // Persist to Matrix
+  parent.postMessage({
+    type: "ACTION_SEND_EVENT",
+    eventType: EVENT_SCORE,
+    content: {
+      scorer,
+      p1Score: GS.p1.score,
+      p2Score: GS.p2.score,
+      ts: Date.now(),
+    }
+  }, "*");
+
+  const isGameOver = GS.p1.score >= WIN_SCORE || GS.p2.score >= WIN_SCORE;
+
+  if (isGameOver) {
+    const winnerNum = GS.p1.score >= WIN_SCORE ? 1 : 2;
+    const winnerName = winnerNum === 1 ? GS.p1.name : GS.p2.name;
+
+    // Persist result
+    parent.postMessage({
+      type: "ACTION_SEND_EVENT",
+      eventType: EVENT_RESULT,
+      content: {
+        winner: winnerNum,
+        winnerName,
+        p1Score: GS.p1.score,
+        p2Score: GS.p2.score,
+        ts: Date.now(),
+      }
+    }, "*");
+
+    GS.running = false;
+    showGameOver(winnerNum, winnerName);
+  } else {
+    // Flash "Point!" then continue
+    const flash = document.getElementById("overlay-point");
+    const msg   = document.getElementById("point-msg");
+    const name  = scorer === 1 ? GS.p1.name : GS.p2.name;
+    msg.textContent = `${name} scores!`;
+    msg.style.color = scorer === 1 ? "#60a5fa" : "#f87171";
+    flash.style.display = "flex";
+
+    setTimeout(() => {
+      flash.style.display = "none";
+      GS.paused = false;
+      resetBall(scorer);
+    }, POINT_FLASH_MS);
+  }
+}
+
+function showGameOver(winnerNum, winnerName) {
+  const msg    = document.getElementById("winner-msg");
+  const detail = document.getElementById("gameover-scores");
+  msg.textContent  = `${winnerName} Wins! 🏆`;
+  msg.className    = winnerNum === 1 ? "winner-p1" : "winner-p2";
+  detail.textContent = `Final score: ${GS.p1.score} – ${GS.p2.score}`;
+  show("overlay-gameover");
+}
+
+// ─── Scoreboard rendering ─────────────────────────────────────────────────────
+function renderScoreboard() {
+  document.getElementById("p1-score").textContent = GS.p1.score;
+  document.getElementById("p2-score").textContent = GS.p2.score;
+  document.getElementById("p1-label").textContent = GS.p1.name;
+  document.getElementById("p2-label").textContent = GS.p2.name;
+}
+
+// ─── History log (from Matrix events) ────────────────────────────────────────
+function renderHistory(messages) {
+  const scores = messages.filter(m => m.type === EVENT_SCORE);
+  const div = document.getElementById("history");
+  if (scores.length === 0) { div.innerHTML = ""; return; }
+
+  const recent = scores.slice(-8).reverse();
+  div.innerHTML = recent.map(m => {
+    const c = m.content;
+    const who   = c.scorer === 1 ? GS.p1.name : GS.p2.name;
+    const cls   = c.scorer === 1 ? "who-p1" : "who-p2";
+    const tstr  = new Date(m.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return `<div class="hist-row">
+      <span class="who ${cls}">${escHtml(who)}</span>
+      <span>scored · ${c.p1Score} – ${c.p2Score}</span>
+      <time>${tstr}</time>
+    </div>`;
+  }).join("");
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+// ─── Room data handler ────────────────────────────────────────────────────────
+window.addEventListener("message", (event) => {
+  if (event.data?.type !== "ROOM_DATA") return;
+  const { messages, roomState: rs } = event.data;
+  allMessages = messages || [];
+  if (rs) {
+    roomState = rs;
+    // Assign member display names to players if available
+    const members = rs.members || [];
+    if (members[0]) GS.p1.name = members[0].displayName || "Player 1";
+    if (members[1]) GS.p2.name = members[1].displayName || "Player 2";
+    renderScoreboard();
+  }
+  renderHistory(allMessages);
+});
+
+// ─── Keyboard input ───────────────────────────────────────────────────────────
+window.addEventListener("keydown", (e) => {
+  keys[e.key] = true;
+  // Prevent arrow keys scrolling the page
+  if (["ArrowUp","ArrowDown"," "].includes(e.key)) e.preventDefault();
+});
+window.addEventListener("keyup", (e) => {
+  keys[e.key] = false;
+});
+
+// ─── Button handlers ──────────────────────────────────────────────────────────
+document.getElementById("btn-start").addEventListener("click", startGame);
+document.getElementById("btn-rematch").addEventListener("click", startGame);
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function show(id) { document.getElementById(id).style.display = "flex"; }
+function hide(id) { document.getElementById(id).style.display = "none"; }
+
+// ─── Game loop ────────────────────────────────────────────────────────────────
+let lastTime = 0;
+const TARGET_FPS = 60;
+const FRAME_MS   = 1000 / TARGET_FPS;
+
+function loop(ts) {
+  requestAnimationFrame(loop);
+  if (ts - lastTime < FRAME_MS - 1) return;
+  lastTime = ts;
+  update();
+  draw();
+}
+
+requestAnimationFrame(loop);
+renderScoreboard();
+</script>
+</body>
+</html>

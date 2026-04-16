@@ -13,7 +13,8 @@ import { UPDATE_EVENT } from "../../stores/AsyncStore"
 import defaultDispatcher from "../../dispatcher/dispatcher"
 import { Action } from "../../dispatcher/actions"
 import { type SubmitDynamicRoomPromptPayload } from "../../dispatcher/payloads/SubmitDynamicRoomPromptPayload"
-import { type SerializedEvent } from "../../dynamic-rooms/schema"
+import { type SerializedEvent, type RendererStateEventContent } from "../../dynamic-rooms/schema"
+import { RENDERER_STATE_EVENT } from "../../dynamic-rooms/constants"
 
 // ─── Snapshot (what the View reads) ─────────────────────────────────────────
 
@@ -63,8 +64,26 @@ export class DynamicRoomViewModel
 
     public constructor(props: DynamicRoomProps) {
         const store = DynamicRoomStore.instance
-        const renderer = store.getRenderer(props.room.roomId)
-        const status = store.getStatus(props.room.roomId)
+        let renderer = store.getRenderer(props.room.roomId)
+        let status = store.getStatus(props.room.roomId)
+
+        // If the store has no renderer info (e.g. lost to HMR or page reload),
+        // check the room's state events directly as a fallback.
+        if (status === "none") {
+            const stateEvent = props.room.currentState.getStateEvents(RENDERER_STATE_EVENT, "")
+            if (stateEvent) {
+                const content = stateEvent.getContent<RendererStateEventContent>()
+                if (content.bundleUrl) {
+                    status = "ready"
+                    renderer = {
+                        bundleUrl: content.bundleUrl,
+                        schemaVersion: content.schemaVersion ?? "1",
+                        displayName: content.displayName ?? props.room.name,
+                        schema: content.schema ?? { events: [] },
+                    }
+                }
+            }
+        }
 
         super(props, {
             rendererStatus: status,
@@ -149,6 +168,7 @@ export class DynamicRoomViewModel
         this.snapshot.merge({
             rendererStatus: status,
             bundleUrl: renderer?.bundleUrl,
+            errorMessage: store.getErrorMessage(roomId),
             isEditPending: counterChanged ? false : this.snapshot.current.isEditPending,
         })
     };

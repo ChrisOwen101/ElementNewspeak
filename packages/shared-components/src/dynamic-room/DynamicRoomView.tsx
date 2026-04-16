@@ -102,28 +102,6 @@ export function DynamicRoomView({ vm }: Readonly<DynamicRoomViewProps>): JSX.Ele
 
     switch (state.rendererStatus) {
         case "none":
-            return (
-                <div className={styles.container}>
-                    <Text size="lg" weight="semibold">
-                        {state.roomName}
-                    </Text>
-                    <Text size="md">Describe what this room should look like</Text>
-                    <div className={styles.promptForm}>
-                        <input
-                            className={styles.promptInput}
-                            type="text"
-                            value={state.promptValue}
-                            onChange={(e) => vm.onPromptChange(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                            placeholder="e.g. A kanban board where messages are cards..."
-                        />
-                        <Button size="sm" onClick={vm.onSubmit} disabled={!state.promptValue.trim()}>
-                            Submit
-                        </Button>
-                    </div>
-                </div>
-            )
-
         case "pending":
             return (
                 <div className={styles.container}>

@@ -750,7 +750,10 @@
     "dynamic_room": {
         "create_dialog_title": "Create a new tool",
         "create_dialog_description": "Give your tool a name. It will be created as a customisable room where you can describe what it should look like.",
-        "create_dialog_placeholder": "e.g. kanban-board, task-tracker…"
+        "create_dialog_placeholder": "e.g. kanban-board, task-tracker…",
+        "create_dialog_name_label": "Tool name",
+        "create_dialog_prompt_label": "Describe what this tool should look like",
+        "create_dialog_prompt_placeholder": "e.g. A kanban board where messages are cards…"
     },
     "devtools": {
         "active_widgets": "Active Widgets",

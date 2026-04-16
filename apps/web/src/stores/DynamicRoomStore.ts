@@ -52,6 +52,9 @@ export class DynamicRoomStore extends AsyncStoreWithClient<DynamicRoomStoreState
     /** Per-room generation status, keyed by roomId */
     private statuses = new Map<string, RendererStatus>();
 
+    /** Per-room error messages, keyed by roomId */
+    private errorMessages = new Map<string, string>();
+
     /** Incremented each time a generation (new or edit) finishes, so VMs can detect completion */
     private generationCounter = 0;
 
@@ -75,6 +78,13 @@ export class DynamicRoomStore extends AsyncStoreWithClient<DynamicRoomStoreState
      */
     public getStatus(roomId: string): RendererStatus {
         return this.statuses.get(roomId) ?? "none"
+    }
+
+    /**
+     * Returns the error message for a room, if any.
+     */
+    public getErrorMessage(roomId: string): string | undefined {
+        return this.errorMessages.get(roomId)
     }
 
     /**
@@ -105,6 +115,7 @@ export class DynamicRoomStore extends AsyncStoreWithClient<DynamicRoomStoreState
         this.matrixClient?.off(RoomStateEvent.Events, this.onRoomStateEvent)
         this.renderers = new Map()
         this.statuses = new Map()
+        this.errorMessages = new Map()
     }
 
     protected async onAction(payload: ActionPayload): Promise<void> {
@@ -195,17 +206,32 @@ export class DynamicRoomStore extends AsyncStoreWithClient<DynamicRoomStoreState
             this.emit("update", roomId)
         }
 
+        // Clear any previous error
+        this.errorMessages.delete(roomId)
+
         try {
             logger.info(`DynamicRoomStore: Sending prompt to ${GENERATE_API_URL} for room ${roomId}`)
-            const response = await fetch(GENERATE_API_URL, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ roomId, prompt }),
-            })
+
+            let response: Response
+            try {
+                response = await fetch(GENERATE_API_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ roomId, prompt }),
+                })
+            } catch (fetchErr) {
+                throw new Error(
+                    `Could not reach the generation server at ${GENERATE_API_URL}. ` +
+                    `Is the bot-server running? (${fetchErr instanceof Error ? fetchErr.message : String(fetchErr)})`,
+                )
+            }
 
             if (!response.ok) {
                 const errorBody = await response.json().catch(() => ({ error: response.statusText }))
-                throw new Error(errorBody.error || `HTTP ${response.status}`)
+                throw new Error(
+                    errorBody.error ||
+                    `Generation server returned HTTP ${response.status} ${response.statusText}`,
+                )
             }
 
             const { bundleUrl: rawBundleUrl } = (await response.json()) as { bundleUrl: string }
@@ -253,7 +279,9 @@ export class DynamicRoomStore extends AsyncStoreWithClient<DynamicRoomStoreState
             this.generationCounter++
             this.emit("update", roomId)
         } catch (err) {
-            logger.error(`DynamicRoomStore: Generation/update failed for room ${roomId}:`, err)
+            const message = err instanceof Error ? err.message : String(err)
+            logger.error(`DynamicRoomStore: Generation/update failed for room ${roomId}:`, message)
+            this.errorMessages.set(roomId, message)
             if (isEdit) {
                 // For edits, keep the current tool visible — just clear the pending state
                 this.statuses.set(roomId, "ready")

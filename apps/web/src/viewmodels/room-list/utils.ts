@@ -16,8 +16,8 @@ import { Action } from "../../dispatcher/actions"
 import { DYNAMIC_ROOM_PREFIX } from "../../dynamic-rooms/constants"
 import createRoomFn from "../../createRoom"
 import Modal from "../../Modal"
-import TextInputDialog from "../../components/views/dialogs/TextInputDialog"
-import { _t } from "../../languageHandler"
+import { CreateToolDialog } from "../../components/views/dialogs/CreateToolDialog"
+import { type SubmitDynamicRoomPromptPayload } from "../../dispatcher/payloads/SubmitDynamicRoomPromptPayload"
 
 /**
  * Check if the user has access to the options menu.
@@ -56,30 +56,35 @@ export async function createRoom(space?: Room | null): Promise<void> {
 
 /**
  * Create a dynamic tool room with the "app-" prefix.
- * Shows a dialog to let the user pick a name, then creates the room
- * and navigates to it so the user sees the prompt input immediately.
+ * Shows a dialog to let the user pick a name and describe the tool,
+ * then creates the room and immediately dispatches the prompt so
+ * generation starts before the user lands on the room view.
  * @param client - The Matrix client
  * @param space - Optional parent space
  */
 export async function createToolRoom(client: MatrixClient, space?: Room | null): Promise<void> {
-    const { finished } = Modal.createDialog(TextInputDialog, {
-        title: _t("dynamic_room|create_dialog_title"),
-        description: _t("dynamic_room|create_dialog_description"),
-        button: _t("action|create"),
-        placeholder: _t("dynamic_room|create_dialog_placeholder"),
-        value: "",
-        focus: true,
-        hasCancel: true,
-    })
+    const { finished } = Modal.createDialog(CreateToolDialog, {})
 
-    const [ok, rawName] = await finished
-    if (!ok || !rawName) return
+    const [ok, rawName, prompt] = await finished
+    if (!ok || !rawName || !prompt) return
 
     const name = `${DYNAMIC_ROOM_PREFIX}${rawName}`
-    await createRoomFn(client, {
+    const roomId = await createRoomFn(client, {
         name,
         parentSpace: space ?? undefined,
     })
+
+    if (roomId && prompt) {
+        // Defer the dispatch to the next tick so it doesn't collide with
+        // the ViewRoom dispatch that createRoomFn fires synchronously.
+        setTimeout(() => {
+            dispatcher.dispatch<SubmitDynamicRoomPromptPayload>({
+                action: Action.SubmitDynamicRoomPrompt,
+                roomId,
+                prompt,
+            })
+        }, 0)
+    }
 }
 
 /**
